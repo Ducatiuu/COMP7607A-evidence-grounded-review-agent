@@ -1,6 +1,6 @@
 # Evidence-Grounded ABSA Agent
 
-Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, A/B/C controllers, local SemEval preparation code, offline metrics and a synthetic Streamlit demo. Formal data, human review, live API integration and research results remain pending.
+Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, A/B/C controllers, local SemEval preparation code, offline metrics and a synthetic Streamlit demo. A tested OpenAI/DeepSeek Responses transport is available behind the shared model interface. Formal data, human review, live execution and research results remain pending.
 
 ## Set up
 
@@ -12,7 +12,11 @@ python -m venv .venv
 .\.venv\Scripts\python -m pytest -q
 ```
 
-The `MockLLMClient` is for offline tests only. No live provider or real experiment is configured. The original Proposal has now been reviewed; see [proposal alignment](docs/proposal_alignment.md), `docs/TASKS.md` and `docs/PROGRESS.md` for commitments, gaps and actual verification status.
+The `MockLLMClient` is for offline tests only. The original Proposal has now been reviewed; see [proposal alignment](docs/proposal_alignment.md), `docs/TASKS.md` and `docs/PROGRESS.md` for commitments, gaps and actual verification status.
+
+## Provider transport status
+
+`src.responses_client.ResponsesClient` implements the shared `LLMClient` contract for the official OpenAI and DeepSeek Responses endpoints. It reads `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` only when called with `allow_network=True`, sends one request without hidden retries, caps output tokens and timeout, and rejects incomplete/refused/non-JSON responses. OpenAI requests set `store=false`; DeepSeek's Responses API is stateless. JSON mode supplies syntax only; the existing Pydantic and source-evidence checks still validate the returned object. The transport has passed local simulated-HTTP tests but has not made a real model call. The CLI and UI remain MOCK-only until bounded live orchestration and the approved provider/model/data/budget are in place. [OpenAI Responses reference](https://developers.openai.com/api/reference/resources/responses/methods/create); [DeepSeek Responses guide](https://api-docs.deepseek.com/guides/responses_api/).
 
 ## Offline CLI (synthetic fixture)
 
