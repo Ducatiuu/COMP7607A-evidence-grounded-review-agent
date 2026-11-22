@@ -43,7 +43,12 @@ _TEMPLATES = [
     ("selection", "Which reviews praise food and criticize service?", ["selected_record_ids"], None),
     ("comparison", "Which has more negative reviews, food or service? Include ties.", ["comparison_groups", "counts"], None),
     ("evidence_explanation", "Which of food, service, and price has the most negative reviews? Give source review IDs supporting the result.", ["comparison_groups", "counts", "source_record_ids"], None),
-    ("insufficient_info", "How did negative service reviews change by month?", ["insufficient_info"], None),
+]
+
+_MISSING_METADATA_TEMPLATES = [
+    "How did negative service reviews change by month?",
+    "What fraction of low-rated reviews criticize service?",
+    "How many distinct customers complained about service?",
 ]
 
 
@@ -51,7 +56,9 @@ def build_candidate_questions(split: CandidateSplit) -> list[QuestionCandidate]:
     questions = []
     for pack_number, ids in enumerate(split.packs, start=1):
         pack_id = f"P{pack_number:02d}"
-        for question_number, (task, wording, fields, denominator) in enumerate(_TEMPLATES, start=1):
+        templates = [*_TEMPLATES, ("insufficient_info", _MISSING_METADATA_TEMPLATES[(pack_number - 1) % 3],
+                                  ["insufficient_info"], None)]
+        for question_number, (task, wording, fields, denominator) in enumerate(templates, start=1):
             questions.append(QuestionCandidate(question_id=f"{pack_id}-Q{question_number}", pack_id=pack_id,
                                                record_ids=ids, task_type=task, wording=wording,
                                                expected_fields=fields, denominator_spec=denominator))

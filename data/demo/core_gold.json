@@ -1,6 +1,6 @@
 [
   {"record_id":"R01","aspects":[{"category":"food","sentiment":"positive"},{"category":"service","sentiment":"negative"}]},
-  {"record_id":"R02","aspects":[{"category":"service","sentiment":"negative"},{"category":"price","sentiment":"negative"}]},
-  {"record_id":"R03","aspects":[{"category":"service","sentiment":"positive"},{"category":"food","sentiment":"positive"}]},
-  {"record_id":"R04","aspects":[{"category":"food","sentiment":"neutral"}]}
+  {"record_id":"R02","aspects":[{"category":"food","sentiment":"positive"},{"category":"price","sentiment":"negative"}]},
+  {"record_id":"R03","aspects":[{"category":"service","sentiment":"positive"}]},
+  {"record_id":"R04","aspects":[{"category":"food","sentiment":"negative"},{"category":"service","sentiment":"negative"}]}
 ]

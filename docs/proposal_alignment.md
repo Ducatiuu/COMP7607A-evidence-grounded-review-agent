@@ -1,0 +1,18 @@
+# Proposal reconciliation (local source reviewed)
+
+The original 12-page Proposal was supplied after the initial offline build. It is retained locally and excluded from Git because it contains personal information. Source SHA-256: `dbf45165dd1eea4baca7f7c95672e746f2dd1b2eb7b446414fd0d031398e394d`. This note records research requirements without copying personal details.
+
+| Proposal commitment | Current status and action |
+|---|---|
+| Four illustrative R01–R04 sentences; service 2 negative among 3 mentions, price 1/1, undefined ambience; food-positive AND service-negative selects R01 | **PASS, synthetic.** Corrected the local CSV and mock extraction to the exact source sentences; a hand-expected integration test checks IDs, text, counts, rates and AND selection. These are illustrations, not measured restaurant results. |
+| Five aspect categories, four sentiments, record-level counts, conflict distinct from cross-aspect mixed sentiment | Implemented and tested offline. Sentence is the SemEval unit; uploaded text entry is the UI unit. Neither is labeled as a customer. |
+| A raw-pack baseline; B fixed workflow; C dynamic 4-round/6-call controller, shared B/C representation and verifier | Implemented with synthetic MOCK model responses. Real provider, exact model configuration, shared physical extraction and pilot remain unverified. |
+| 150 dev, 600 naturally sampled test, 20×30 packs and 120 reviewed questions | Parser, deduplication, seeded candidate split and gold-only reference generation are implemented. Actual licensed files, natural distribution audit, two-person review and frozen manifests remain pending. |
+| Missing-information questions vary absent dates, ratings and customer identity | **PASS in candidate generator.** The sixth question rotates these three metadata needs across packs. The synthetic CLI/UI date question now refuses without inventing a trend. Wording still requires human review. |
+| Questions cover empty results, ties and undefined rates | Unit tests cover those metric behaviors. A full 120-question candidate set cannot yet be audited for coverage without the real sampled packs and human review; this remains pending. |
+| 40 human-authored contrastive pairs, two independent labels and third-person adjudication | One clearly synthetic pair tests extraction control flow only. Formal writing, labels, adjudication, change/stability scoring and subgroup support remain pending human/data work. |
+| 30-question blinded evidence review, claim support and citation validity separately | Candidate subset selection and unlabeled blind export are implemented. Human review, adjudication and agreement statistics remain pending. |
+| Four-minute demo: negative priority, mixed record, AND selection, missing-date refusal, real A/B/C comparison and separate results | The four-record and 60-entry **MOCK** UI now exercise the first four interactions and show labeled synthetic A/B/C traces. Genuine saved runs and real comparison/results remain pending; the UI does not present fabricated performance. |
+| Approx. 30-record/10-query real pilot, approved model/budget, formal comparison and final report/slides | Not run. Provider, scope, fees and request caps require separate approval; licensed data and reviewed manifests are also prerequisites. Empty report template and budget method exist. |
+
+No requirement was lowered on discovering the gaps. The four-record example is a development fixture; the separate 60-entry simulated dataset addresses presentation scale but does not fulfill the formal experiment or genuine saved-run requirement.

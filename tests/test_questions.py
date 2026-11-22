@@ -64,3 +64,15 @@ def test_question_script_keeps_gold_separate_from_question_file(tmp_path):
     question_file = json.loads(questions_path.read_text(encoding="utf-8"))
     assert all("selected_record_ids" not in item and "source_record_ids" not in item for item in question_file)
     assert references_path.exists()
+
+
+def test_missing_metadata_questions_rotate_date_rating_and_identity():
+    split = CandidateSplit(seed=42, train_sha256="a" * 64, test_sha256="b" * 64,
+                           train_source_url="synthetic://train", test_source_url="synthetic://test", dev_ids=["D1"],
+                           test_ids=["R1", "R2", "R3"], packs=[["R1"], ["R2"], ["R3"]],
+                           train_duplicate_groups=[], test_duplicate_groups=[], cross_split_train_ids=[],
+                           conflict_excluded_train_ids=[], conflict_excluded_test_ids=[],
+                           dev_label_counts={}, test_label_counts={}, manifest_sha256="c" * 64)
+    questions = [item.wording for item in build_candidate_questions(split) if item.task_type == "insufficient_info"]
+    assert len(set(questions)) == 3
+    assert "month" in questions[0] and "low-rated" in questions[1] and "customers" in questions[2]

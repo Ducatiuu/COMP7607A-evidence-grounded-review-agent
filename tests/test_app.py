@@ -23,6 +23,8 @@ def test_demo_upload_extract_ask_compare_and_restore_after_refresh(tmp_path, mon
     assert not at.exception and at.session_state["workspace"].extraction.coverage.success == 4
     at.selectbox(key="evidence_category").set_value("service").run()
     assert any(metric.label == "Matching distinct records" and metric.value == "2" for metric in at.metric)
+    assert any(metric.label == "AND matching records" and metric.value == "1" for metric in at.metric)
+    assert any("Highest observed negative record count: service (2)" in item.value for item in at.markdown)
     at.selectbox(key="method").set_value("b").run()
     at.button(key="ask").click().run()
     answer = at.session_state["workspace"].answer
@@ -36,6 +38,10 @@ def test_demo_upload_extract_ask_compare_and_restore_after_refresh(tmp_path, mon
     refreshed.run()
     assert not refreshed.exception and refreshed.session_state["workspace"].answer.numeric_claims[0].value == 2 / 3
     assert set(refreshed.session_state["workspace"].comparison) == {"a", "b", "c"}
+    refreshed.text_input(key="question").set_value("Did negative service reviews improve over the last month?").run()
+    refreshed.button(key="ask").click().run()
+    assert refreshed.session_state["workspace"].answer.status == "insufficient_info"
+    assert "date" in refreshed.session_state["workspace"].answer.answer_text
     refreshed.button(key="clear_workspace").click().run()
     assert not refreshed.exception and refreshed.session_state["workspace"].records is None
 
@@ -50,7 +56,7 @@ def test_unrecognized_upload_does_not_claim_mock_extraction(tmp_path, monkeypatc
     assert at.session_state["workspace"].extraction is None
     at.button(key="ask").click().run()
     assert not at.exception and at.session_state["workspace"].answer is None
-    assert any("only for the unchanged synthetic demo" in error.value for error in at.error)
+    assert any("only for the unchanged synthetic fixtures" in error.value for error in at.error)
 
 
 def test_uploaded_validated_extraction_enables_deterministic_analysis(tmp_path, monkeypatch):
@@ -73,4 +79,22 @@ def test_uploaded_validated_extraction_enables_deterministic_analysis(tmp_path, 
     at.selectbox(key="method").set_value("b").run()
     at.button(key="ask").click().run()
     assert at.session_state["workspace"].answer is None
-    assert any("offline MOCK question is available only" in error.value for error in at.error)
+    assert any("Offline MOCK questions are available only" in error.value for error in at.error)
+
+
+def test_simulated_60_record_demo_runs_full_mock_path(tmp_path, monkeypatch):
+    monkeypatch.setenv("ABSA_UI_SESSION_DIR", str(tmp_path))
+    at = AppTest.from_file(APP).run()
+    at.radio(key="source_mode").set_value("60-record simulated demo").run()
+    at.button(key="load_demo").click().run()
+    assert len(at.session_state["workspace"].records.records) == 60
+    at.button(key="extract_demo").click().run()
+    assert not at.exception and at.session_state["workspace"].extraction.coverage.success == 60
+    assert any(metric.label == "AND matching records" and metric.value == "6" for metric in at.metric)
+    at.selectbox(key="method").set_value("c").run()
+    at.button(key="ask").click().run()
+    answer = at.session_state["workspace"].answer
+    assert not at.exception and answer.status == "ok"
+    assert (answer.numeric_claims[0].numerator, answer.numeric_claims[0].denominator, answer.numeric_claims[0].value) == (24, 48, 0.5)
+    at.button(key="compare").click().run()
+    assert not at.exception and {method: item.status for method, item in at.session_state["workspace"].comparison.items()} == {"a": "ok", "b": "ok", "c": "ok"}

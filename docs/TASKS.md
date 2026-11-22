@@ -1,6 +1,6 @@
 # Development tasks
 
-The user's request authorizes local autonomous development. GitHub publication, paid/live API use, formal holdout evaluation, and human annotation each require separate authorization or human work. The Proposal PDF was not present at project start. No completion claim below covers those items.
+The user's request authorizes local autonomous development. GitHub publication, paid/live API use, formal holdout evaluation, and human annotation each require separate authorization or human work. The Proposal PDF arrived after the initial build and was reviewed locally; it remains excluded from Git because it contains personal information. No completion claim below covers unperformed real or human work.
 
 | ID | Module and scope | Dependencies | Acceptance | Status | Sync |
 |---|---|---|---|---|---|
@@ -40,5 +40,12 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P7A-BUDGET | Request/token cost planning and real-run approval checklist | P5-RUNNER | 570 answers, explicit bounds/prices, no assumed provider cost | PASS (planning code) | NOT AUTHORIZED |
 | P7A-BLIND | Method-blinded review export and blank report template | P7A-SUBSETS, P7A-REPORT | Private mapping, no human labels, no overwrite | PASS (synthetic) | NOT AUTHORIZED |
 | P7A-REAL | Real pilot, formally frozen data and full experiment | P5-HUMAN, P5-REALDATA, provider/budget approval | Actual licensed data, human review, real logs and holdout permission | BLOCKED: external prerequisites | NOT AUTHORIZED |
+| P-PROPOSAL | Review original Proposal and reconcile commitments | Local PDF supplied | All 12 pages checked; sanitized requirement matrix and discrepancies recorded | PASS (source review) | NOT AUTHORIZED |
+| P1-PROPOSAL-FIXTURE | Align R01–R04 demo with source example | P-PROPOSAL, P1-LOAD | Exact texts; service 2/3, price 1/1, ambience undefined, AND R01 | PASS (synthetic) | NOT AUTHORIZED |
+| P5-METADATA-VARIATION | Rotate missing date/rating/customer-ID question wording | P-PROPOSAL, P5-QUESTIONS | Three distinct prompts across packs; no invented metadata | PASS (candidate code) | NOT AUTHORIZED |
+| P6-DEMO-ROUTE | Add negative priority, AND selection and missing-date refusal to UI | P1-PROPOSAL-FIXTURE, P6-ANALYSIS | App interaction from load through evidence, AND, refusal and comparison | PASS (synthetic UI) | NOT AUTHORIZED |
+| P5-BOUNDARY-AUDIT | Verify 120 real candidate questions cover empty results, ties and undefined rates | P5-REALDATA, P5-HUMAN | Coverage counts and reviewed, frozen wording/reference manifest | BLOCKED: real packs/review | NOT AUTHORIZED |
+| P6-DEMO-SCALE | Prepare 50–100 clearly simulated presentation records | P6-DEMO-ROUTE | 60 unique entries, five categories/four sentiments, exact spans, UI A/B/C MOCK path | PASS (synthetic) | NOT AUTHORIZED |
+| P6-GENUINE-DEMO | Save genuine baseline/proposed run and rehearse final presentation | P6-DEMO-SCALE, provider approval | Real saved output, truthful labels, four-minute human rehearsal | BLOCKED: provider/human work | NOT AUTHORIZED |
 
 Status reflects verified work, not intention. Each module gets a separate review and test entry in `PROGRESS.md` before PASS.

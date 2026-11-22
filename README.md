@@ -12,20 +12,22 @@ python -m venv .venv
 .\.venv\Scripts\python -m pytest -q
 ```
 
-The `MockLLMClient` is for offline tests only. No live provider or real experiment is configured. The original proposal is absent from the supplied directory, so its research commitments have not yet been independently checked. See `docs/TASKS.md` and `docs/PROGRESS.md` for actual implementation and verification status.
+The `MockLLMClient` is for offline tests only. No live provider or real experiment is configured. The original Proposal has now been reviewed; see [proposal alignment](docs/proposal_alignment.md), `docs/TASKS.md` and `docs/PROGRESS.md` for commitments, gaps and actual verification status.
 
 ## Offline CLI (synthetic fixture)
 
-The current CLI fixture accepts only the unchanged `data/demo/core.csv` and the exact question below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.
+The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.
 
 ```powershell
 .\.venv\Scripts\python -m src.cli extract --input data/demo/core.csv --mock
 .\.venv\Scripts\python -m src.cli ask --method a --input data/demo/core.csv --question "What is the negative service rate?" --mock
 .\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "What is the negative service rate?" --mock
 .\.venv\Scripts\python -m src.cli ask --method c --input data/demo/core.csv --question "What is the negative service rate?" --mock
+.\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "Did negative service reviews improve over the last month?" --mock
+.\.venv\Scripts\python -m src.cli ask --method c --input data/demo/presentation.csv --question "What is the negative service rate?" --mock
 ```
 
-Expected service result: 2 negative records / 3 records mentioning service = 2/3. Method A receives only all four raw reviews and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C uses the same extraction, parser, tools and finalizer, but a bounded mock decision loop chooses its tool calls after seeing results. Arbitrary questions, uploaded datasets and live API execution are not yet configured in this CLI.
+For the four-record example, service is 2 negative records (R01/R04) / 3 mentions (R01/R03/R04) = 2/3. For the 60-entry fixture, it is 24/48 = 1/2. The date question returns `insufficient_info` because dates are absent. Method A receives all raw entries and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C uses the same extraction, parser, tools and finalizer, but a bounded mock decision loop chooses its tool calls after seeing results. Arbitrary questions, other uploaded datasets and live API execution are not configured in this CLI.
 
 ## Offline run ledger
 
@@ -42,6 +44,6 @@ Rows are append-only under ignored `outputs/runs/`; a matching rerun skips compl
 .\.venv\Scripts\python -m streamlit run app.py
 ```
 
-The server binds to `127.0.0.1`. Load the synthetic demo (or upload the unchanged `data/demo/core.csv`), run MOCK extraction, inspect aspect counts and evidence, ask the displayed question with A/B/C, then compare methods and traces. Browser refresh restores locally saved state through a random URL token; **Clear local workspace** removes that saved state. Uploads are capped at 1 MB for CSV and 5 MB for extraction JSON. A different CSV can be paired with a separately validated `ExtractionDataset` JSON for deterministic charts/evidence; the canned MOCK question is deliberately unavailable for it. No live API or formal result is shown.
+The server binds to `127.0.0.1`. Load the four-record Proposal example or the 60-entry simulated fixture, run MOCK extraction, inspect the highest negative count and source records, select food-positive AND service-negative records, ask the displayed rate or missing-date question with A/B/C, then compare methods and traces. The 60-entry fixture is generated reproducibly with `python -m scripts.build_presentation_demo`; see the [four-minute walkthrough](docs/demo_script.md). Browser refresh restores locally saved state through a random URL token; **Clear local workspace** removes that saved state. Uploads are capped at 1 MB for CSV and 5 MB for extraction JSON. A different CSV can be paired with a separately validated `ExtractionDataset` JSON for deterministic charts/evidence; canned MOCK questions are unavailable for it. No live API or formal result is shown.
 
 The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Licensed raw data, formal gold labels, credentials, and local run outputs are ignored by Git. Synthetic demo gold/reference fixtures are tracked as test data.

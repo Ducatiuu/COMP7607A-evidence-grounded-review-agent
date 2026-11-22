@@ -34,4 +34,14 @@ def test_cli_extract_and_a_b_c_use_explicit_mock_label():
 
 def test_cli_rejects_unknown_mock_question():
     unknown = _run("ask", "--method", "b", "--input", "data/demo/core.csv", "--question", "Another question", "--mock")
-    assert unknown.returncode != 0 and "only supports this exact question" in unknown.stderr
+    assert unknown.returncode != 0 and "supports only the two displayed" in unknown.stderr
+
+
+def test_cli_missing_date_question_refuses_without_inventing_trend():
+    question = "Did negative service reviews improve over the last month?"
+    for method in "abc":
+        completed = _run("ask", "--method", method, "--input", "data/demo/core.csv", "--question", question, "--mock")
+        assert completed.returncode == 0, completed.stderr
+        answer = json.loads(completed.stdout)["answer"]
+        assert answer["question_id"] == "demo-date" and answer["status"] == "insufficient_info"
+        assert not answer["numeric_claims"] and not answer["tool_trace"]

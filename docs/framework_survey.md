@@ -10,4 +10,4 @@ Read-only checks used each repository's GitHub API metadata, default-branch comm
 | [Codex](https://github.com/openai/codex) | `1476a08f1b410e359e64becf2494bc248743e396` | root `LICENSE`, `CHANGELOG.md` | Apache-2.0 reported | General bounded tool-control design reference; no code reuse or dependency. |
 | [awesome-verified-agents](https://github.com/tonydzi/awesome-verified-agents) | `8ce5109de74a08277845e0367ed22b4b3939d771` | `README.md`, `LICENSE` | MIT reported | Checklist inspiration for inspectable artifacts. No code reuse. |
 
-Deeper file and implementation review is deferred until a concrete reuse decision is needed. Missing Proposal prevents checking this plan against the original research commitments.
+Deeper file and implementation review is deferred until a concrete reuse decision is needed. The Proposal was absent at survey time and has since been reviewed; see `docs/proposal_alignment.md` for the requirement audit.

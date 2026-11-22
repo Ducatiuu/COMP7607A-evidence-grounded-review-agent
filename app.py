@@ -11,7 +11,7 @@ import streamlit as st
 
 from src.absa_service import ExtractionService
 from src.data_loader import dataset_fingerprint, load_csv, read_csv
-from src.demo_mock import DEMO_FINGERPRINT, DEMO_QUESTION, mock_for_demo, run_demo_method
+from src.demo_mock import DEMO_FINGERPRINT, PRESENTATION_FINGERPRINT, DEMO_MISSING_DATE_QUESTION, DEMO_QUESTION, mock_for_demo, run_demo_method
 from src.schemas import AnswerPayload, Category, ExtractionDataset
 from src.tools import AggregateArgs, AnalysisContext, EvidenceArgs, FilterArgs, aggregate_aspects, filter_records, get_evidence
 from src.ui_state import UIWorkspace, clear_workspace, load_workspace, new_session_token, save_workspace
@@ -49,7 +49,7 @@ def persist(updated: UIWorkspace) -> None:
 
 
 def is_demo() -> bool:
-    return workspace.records is not None and dataset_fingerprint(workspace.records) == DEMO_FINGERPRINT
+    return workspace.records is not None and dataset_fingerprint(workspace.records) in {DEMO_FINGERPRINT, PRESENTATION_FINGERPRINT}
 
 
 dataset_tab, analysis_tab, evidence_tab, ask_tab, comparison_tab, results_tab = st.tabs(
@@ -58,12 +58,13 @@ dataset_tab, analysis_tab, evidence_tab, ask_tab, comparison_tab, results_tab = 
 
 with dataset_tab:
     st.subheader("Dataset")
-    st.write("Upload at most 1 MB of UTF-8 CSV with a `text` column and optional `record_id`, or load the four synthetic examples.")
-    mode = st.radio("Source", ["Built-in synthetic demo", "Upload CSV"], key="source_mode")
-    if mode == "Built-in synthetic demo":
+    st.write("Upload at most 1 MB of UTF-8 CSV with a `text` column and optional `record_id`, or load a synthetic fixture.")
+    mode = st.radio("Source", ["Built-in synthetic demo", "60-record simulated demo", "Upload CSV"], key="source_mode")
+    if mode in {"Built-in synthetic demo", "60-record simulated demo"}:
         if st.button("Load synthetic demo", key="load_demo"):
-            records = load_csv("data/demo/core.csv")
-            persist(UIWorkspace(source_label="Synthetic demo", records=records))
+            path = "data/demo/core.csv" if mode == "Built-in synthetic demo" else "data/demo/presentation.csv"
+            records = load_csv(path)
+            persist(UIWorkspace(source_label="Synthetic Proposal example" if mode == "Built-in synthetic demo" else "60 simulated entries", records=records))
     else:
         uploaded = st.file_uploader("Review CSV", type="csv", key="upload_csv", max_upload_size=1)
         if st.button("Load uploaded CSV", key="load_upload"):
@@ -103,7 +104,7 @@ with analysis_tab:
                 persist(workspace.model_copy(update={"extraction": run.dataset, "extraction_origin": "synthetic_mock", "extraction_requests": run.requests,
                                                      "answer": None, "comparison": {}}))
         else:
-            st.info("MOCK extraction supports only the unchanged synthetic demo. Upload a validated ExtractionDataset JSON for deterministic analysis of other CSVs.")
+            st.info("MOCK extraction supports only the unchanged synthetic fixtures. Upload a validated ExtractionDataset JSON for deterministic analysis of other CSVs.")
         extraction_file = st.file_uploader("Validated extraction JSON (optional)", type="json", key="upload_extraction", max_upload_size=5)
         if st.button("Load extraction JSON", key="load_extraction"):
             if extraction_file is None:
@@ -129,6 +130,10 @@ with analysis_tab:
                      "denominator": stat.denominator} for stat in aggregate.stats]
             st.dataframe(rows, hide_index=True)
             st.bar_chart(pd.DataFrame(rows).set_index("aspect")[["negative"]])
+            highest = max(stat.negative_count for stat in aggregate.stats)
+            leaders = [stat.category.value for stat in aggregate.stats if stat.negative_count == highest]
+            st.write(f"Highest observed negative record count: {', '.join(leaders)} ({highest}).")
+            st.caption("Counts are distinct records in this dataset, not customers or financial impact.")
             if aggregate.status == "partial":
                 st.warning("Statistics are partial because extraction failed for some records.")
 
@@ -151,14 +156,33 @@ with evidence_tab:
                 st.json([aspect.model_dump(mode="json") for aspect in item.aspects])
         if not evidence.examples:
             st.info("No matching records in the validated extraction.")
+        st.subheader("Combined aspect selection")
+        left_category = st.selectbox("First aspect", [item.value for item in Category], key="and_category_1")
+        left_sentiment = st.selectbox("First sentiment", ["positive", "negative", "neutral", "conflict"], key="and_sentiment_1")
+        right_category = st.selectbox("Second aspect", [item.value for item in Category], index=1, key="and_category_2")
+        right_sentiment = st.selectbox("Second sentiment", ["negative", "positive", "neutral", "conflict"], key="and_sentiment_2")
+        combined = filter_records(context, FilterArgs(conditions=[{"category": left_category, "sentiment": left_sentiment},
+                                                               {"category": right_category, "sentiment": right_sentiment}], operator="AND"))
+        st.metric("AND matching records", combined.count)
+        if combined.status == "partial":
+            st.warning("Combined selection is partial because some extractions failed.")
+        if combined.record_ids:
+            selected = get_evidence(context, EvidenceArgs(record_ids=combined.record_ids, max_examples=10))
+            for item in selected.examples:
+                with st.expander(f"AND {item.record_id}"):
+                    st.write(item.text)
+                    st.json([aspect.model_dump(mode="json") for aspect in item.aspects])
+        else:
+            st.info("No records match both aspect conditions.")
 
 with ask_tab:
     st.subheader("Ask the synthetic demo")
     question = st.text_input("Question", value=DEMO_QUESTION, key="question")
+    st.caption(f"Available MOCK prompts: {DEMO_QUESTION} | {DEMO_MISSING_DATE_QUESTION}")
     method = st.selectbox("Method", ["a", "b", "c"], key="method")
     if st.button("Ask", key="ask"):
-        if workspace.records is None or not is_demo() or question != DEMO_QUESTION:
-            st.error("The offline MOCK question is available only for the unchanged synthetic demo and exact displayed wording.")
+        if workspace.records is None or not is_demo() or question not in {DEMO_QUESTION, DEMO_MISSING_DATE_QUESTION}:
+            st.error("Offline MOCK questions are available only for the unchanged synthetic fixtures and exact displayed wording.")
         elif method in {"b", "c"} and workspace.extraction_origin != "synthetic_mock":
             st.error("Run synthetic MOCK extraction first for B/C.")
         else:
@@ -178,7 +202,7 @@ with ask_tab:
             st.markdown(f"> {citation.record_id}: {citation.quote}")
 
 with comparison_tab:
-    st.subheader("A/B/C comparison on the same four reviews")
+    st.subheader("A/B/C comparison on the same records")
     if st.button("Compare A/B/C", key="compare"):
         if workspace.records is None or workspace.extraction_origin != "synthetic_mock" or not is_demo():
             st.error("Load and extract the synthetic demo first.")
@@ -198,7 +222,7 @@ with comparison_tab:
                          "query_requests": answer.usage.get("api_requests"),
                          "analysis_tools": answer.usage.get("analysis_tool_calls", 0)})
         st.dataframe(rows, hide_index=True)
-        st.caption(f"MOCK only. B/C reused one extraction artifact ({workspace.extraction_requests} extraction requests); table shows later query requests. No accuracy claim.")
+        st.caption(f"MOCK only. B/C reused one extraction artifact ({workspace.extraction_requests} extraction requests); table shows later query requests. No model accuracy claim.")
 
 with results_tab:
     st.subheader("Cost, trace and results")

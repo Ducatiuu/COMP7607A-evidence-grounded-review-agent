@@ -197,3 +197,33 @@
 
 - All offline branch modules passed synthetic tests. The full suite exited 0 with 98 passes, 0 failures, 0 skips and 10 third-party Streamlit `Pandas4Warning` notices. `git diff --check` exited 0; line-ending notices only. CLI challenge and gold/ablation commands exited 0. Real pilot, licensed SemEval manifests, frozen human-reviewed questions/references, 40 adjudicated pairs, 30-question evidence review, a live provider adapter and formal experiment are still blocked by missing files, human work and separate approval.
 - The original Proposal PDF remains absent. No GitHub synchronization was authorized; work remains local.
+
+## Original Proposal received and reconciled — PASS (source review)
+
+- The 12-page original PDF was supplied after the first local release candidate. Read all extracted pages and visually checked the title, illustrative-record table, analytical-question table and demonstration/resource pages. Source SHA-256 is recorded in `docs/proposal_alignment.md`; the PDF remains ignored by Git because it contains personal information. No names or student IDs were copied into tracked documentation.
+- Review found two concrete gaps despite matching high-level architecture: the four-record fixture had different R02–R04 texts, and all missing-information questions used the same monthly phrasing. The UI also lacked an explicit AND control and missing-date demonstration path. These were addressed below. Formal question boundary coverage, human review, true saved runs and final report/slides remain open, as documented in the alignment matrix.
+
+## P1-PROPOSAL-FIXTURE — PASS (synthetic example)
+
+- Files: `data/demo/core.csv`, `data/demo/core_gold.json`, `src/demo_mock.py`, `tests/test_proposal_alignment.py`, `README.md`.
+- Self-review: replaced the earlier same-rate but differently worded fixture with the Proposal's exact R01–R04 sentences. R04's “long wait” is an implicit negative service span; R02 has positive food and negative price; R03 has positive service. Updated the fingerprint so old synthetic data cannot silently reuse canned responses. The 60-entry fixture has a separate fingerprint. Existing run manifests with old data hashes remain preserved and cannot be resumed under the new config.
+- Functional check: `tests/test_proposal_alignment.py` exited 0 with 1 pass. Independent hand expectations matched actual tool output: service 3 mentions/2 negative/rate 2/3, price 1/1, ambience no mentions/rate null, food-positive AND service-negative IDs `[R01]`. Full suite exited 0 with 103 passes, 0 failures/skips and 16 third-party Streamlit warnings. These are illustrative fixtures, not model or restaurant measurements.
+
+## P5-METADATA-VARIATION — PASS (candidate code)
+
+- Files: `eval/questions.py`, `tests/test_questions.py`, `src/demo_mock.py`, `tests/test_cli.py`.
+- Self-review: preserved one insufficient-information question per pack while rotating absent date, rating and customer-identity requirements across packs. Reference generation still derives answerability separately from model output. A/B/C synthetic date response has no invented trend or numeric claim; B/C parser records the unavailable date metadata. The CLI assigns this question a distinct ID.
+- Tests: focused question suite exited 0 with 4 passes; focused CLI/condition/UI suite exited 0 with 11 passes before the 60-entry addition. Full suite later exited 0 with 103 passes. Formal candidate wording remains `CANDIDATE_UNREVIEWED` and needs human review; actual 120-question boundary coverage awaits real packs.
+
+## P6-DEMO-ROUTE — PASS (synthetic UI)
+
+- Files: `app.py`, `src/demo_mock.py`, `tests/test_app.py`.
+- Self-review: added an observed highest negative record-count statement, explicit two-predicate AND selection with source expansion, and a second canned missing-date question. The existing A/B/C comparison and results tabs remain explicitly MOCK; the UI labels distinct records rather than customers/financial impact. An arbitrary upload still cannot access canned QA.
+- AppTest loaded the four Proposal entries, extracted 4/4, showed 2 negative service records and one food-positive AND service-negative record, asked B for 2/3, compared A/B/C, restored on refresh, then asked the date question and received `insufficient_info` with no invented trend. Focused AppTest later exited 0 with 4 passes and 16 third-party warnings. Real browser rehearsal and genuine fallback remain pending.
+
+## P6-DEMO-SCALE — PASS (60 simulated entries, MOCK only)
+
+- Files: `scripts/build_presentation_demo.py`, `data/demo/presentation.csv`, `data/demo/presentation_annotations.json`, `src/demo_mock.py`, `app.py`, `tests/test_presentation_demo.py`, `tests/test_app.py`.
+- Self-review: generated 60 unique text entries with five categories and all four sentiment labels, explicit exact source spans and a versioned annotation hash. Source/annotation IDs and texts must align; a changed CSV fingerprint or annotation hash is rejected. The mock computes claims from the fixed synthetic labels, so apparent A/B/C agreement cannot be interpreted as model accuracy. The dataset is separate from the Proposal's four-record example and formal SemEval evaluation.
+- Focused presentation/UI suite exited 0 with 5 passes. AppTest loaded 60, extracted 60/60, showed six food-positive AND service-negative records, asked C and obtained 24 negative service records / 48 mentions = 0.5, and compared all three MOCK methods successfully. The actual CLI C command returned status `ok`, 24/48, 60 extraction requests plus 4 later model-request fixtures. Full suite exited 0 with 103 passes, 0 failures/skips and 16 third-party Streamlit chart warnings. Genuine saved runs and a human four-minute rehearsal remain pending.
+- Final integration smoke: Streamlit started on `127.0.0.1:8507`, GET `/` returned HTTP 200 `text/html`, and the server was stopped. `.venv/Scripts/python -m pip check` exited 0. `git diff --check` exited 0 with only Windows line-ending notices. `docs/demo_script.md` records the local synthetic four-minute route; it has not been independently rehearsed by a human.

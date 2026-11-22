@@ -1,0 +1,1121 @@
+{
+  "provenance": "SIMULATED_MOCK_FIXTURE",
+  "records": [
+    {
+      "record_id": "S01",
+      "text": "The noodles were flavorful, but the server forgot our order.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The noodles were flavorful"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the server forgot our order"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S02",
+      "text": "The dumplings tasted fresh, but service was painfully slow.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The dumplings tasted fresh"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "service was painfully slow"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S03",
+      "text": "The soup was rich, but the waiter ignored our table.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The soup was rich"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the waiter ignored our table"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S04",
+      "text": "The grilled fish was excellent, but staff mixed up the dishes.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The grilled fish was excellent"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "staff mixed up the dishes"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S05",
+      "text": "The rice was perfectly cooked, but we waited too long for water.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The rice was perfectly cooked"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "we waited too long for water"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S06",
+      "text": "The dessert was delicate, but the cashier was rude.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The dessert was delicate"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the cashier was rude"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S07",
+      "text": "The curry had great depth, and the server was attentive.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The curry had great depth"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the server was attentive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S08",
+      "text": "The bread arrived warm, and staff welcomed us warmly.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The bread arrived warm"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "staff welcomed us warmly"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S09",
+      "text": "The vegetables were crisp, and our waiter was helpful.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The vegetables were crisp"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "our waiter was helpful"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S10",
+      "text": "The broth was fragrant, and service was quick.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The broth was fragrant"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "service was quick"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S11",
+      "text": "The tofu was well seasoned, and the host was considerate.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The tofu was well seasoned"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the host was considerate"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S12",
+      "text": "The pie was delicious, and staff handled requests promptly.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The pie was delicious"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "staff handled requests promptly"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S13",
+      "text": "Our server forgot the drinks.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "Our server forgot the drinks"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S14",
+      "text": "The staff left us waiting at the entrance.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "The staff left us waiting at the entrance"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S15",
+      "text": "The waiter spoke sharply to us.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "The waiter spoke sharply to us"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S16",
+      "text": "Nobody checked on our table.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "Nobody checked on our table"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S17",
+      "text": "The bill took ages to arrive.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "The bill took ages to arrive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S18",
+      "text": "The host lost our reservation.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "The host lost our reservation"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S19",
+      "text": "The team greeted us kindly.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "The team greeted us kindly"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S20",
+      "text": "Our waiter explained the menu clearly.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "Our waiter explained the menu clearly"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S21",
+      "text": "The staff responded quickly.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "The staff responded quickly"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S22",
+      "text": "The host found us a seat immediately.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "The host found us a seat immediately"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S23",
+      "text": "Service was ordinary.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "neutral",
+          "evidence": [
+            "Service was ordinary"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S24",
+      "text": "The staff interaction was unremarkable.",
+      "aspects": [
+        {
+          "category": "service",
+          "sentiment": "neutral",
+          "evidence": [
+            "The staff interaction was unremarkable"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S25",
+      "text": "The pasta was bland, and the bill was excessive.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "negative",
+          "evidence": [
+            "The pasta was bland"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the bill was excessive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S26",
+      "text": "The fish was overcooked, and the meal cost too much.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "negative",
+          "evidence": [
+            "The fish was overcooked"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the meal cost too much"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S27",
+      "text": "The vegetables were soggy, and the prices were steep.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "negative",
+          "evidence": [
+            "The vegetables were soggy"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the prices were steep"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S28",
+      "text": "The soup arrived cold, and the portions were expensive.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "negative",
+          "evidence": [
+            "The soup arrived cold"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the portions were expensive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S29",
+      "text": "The steak lacked flavor, and the menu was overpriced.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "negative",
+          "evidence": [
+            "The steak lacked flavor"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the menu was overpriced"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S30",
+      "text": "The rice tasted stale, and the charge felt unreasonable.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "negative",
+          "evidence": [
+            "The rice tasted stale"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the charge felt unreasonable"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S31",
+      "text": "The salad was refreshing, and the lunch special was pricey.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The salad was refreshing"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the lunch special was pricey"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S32",
+      "text": "The noodles were satisfying, and the dessert cost too much.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The noodles were satisfying"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "negative",
+          "evidence": [
+            "the dessert cost too much"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S33",
+      "text": "The cake tasted wonderful, and the set menu was good value.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The cake tasted wonderful"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "positive",
+          "evidence": [
+            "the set menu was good value"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S34",
+      "text": "The seafood was fresh, and the price was fair.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "positive",
+          "evidence": [
+            "The seafood was fresh"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "positive",
+          "evidence": [
+            "the price was fair"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S35",
+      "text": "The pizza was tasty but the crust was burnt, and the deal was affordable.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "conflict",
+          "evidence": [
+            "The pizza was tasty but the crust was burnt"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "positive",
+          "evidence": [
+            "the deal was affordable"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S36",
+      "text": "The curry was aromatic but too salty, and the bill was reasonable.",
+      "aspects": [
+        {
+          "category": "food",
+          "sentiment": "conflict",
+          "evidence": [
+            "The curry was aromatic but too salty"
+          ]
+        },
+        {
+          "category": "price",
+          "sentiment": "positive",
+          "evidence": [
+            "the bill was reasonable"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S37",
+      "text": "The dining room was noisy, and staff forgot our request.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "negative",
+          "evidence": [
+            "The dining room was noisy"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "staff forgot our request"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S38",
+      "text": "The lights were harsh, and the waiter delayed our meal.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "negative",
+          "evidence": [
+            "The lights were harsh"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the waiter delayed our meal"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S39",
+      "text": "The tables felt cramped, and service was inattentive.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "negative",
+          "evidence": [
+            "The tables felt cramped"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "service was inattentive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S40",
+      "text": "The music was too loud, and the host ignored us.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "negative",
+          "evidence": [
+            "The music was too loud"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the host ignored us"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S41",
+      "text": "The room was calm, and our server was curt.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "positive",
+          "evidence": [
+            "The room was calm"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "our server was curt"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S42",
+      "text": "The decor was inviting, and staff brought the wrong bill.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "positive",
+          "evidence": [
+            "The decor was inviting"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "staff brought the wrong bill"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S43",
+      "text": "The terrace was pleasant, and service was attentive.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "positive",
+          "evidence": [
+            "The terrace was pleasant"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "service was attentive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S44",
+      "text": "The lighting felt warm, and the waiter checked on us.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "positive",
+          "evidence": [
+            "The lighting felt warm"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the waiter checked on us"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S45",
+      "text": "The room looked ordinary, and staff solved a problem quickly.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "neutral",
+          "evidence": [
+            "The room looked ordinary"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "staff solved a problem quickly"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S46",
+      "text": "The decor was unremarkable, and the host was welcoming.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "neutral",
+          "evidence": [
+            "The decor was unremarkable"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the host was welcoming"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S47",
+      "text": "The room was lively but uncomfortably crowded, and our server was patient.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "conflict",
+          "evidence": [
+            "The room was lively but uncomfortably crowded"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "our server was patient"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S48",
+      "text": "The music was pleasant but too loud, and staff were cheerful.",
+      "aspects": [
+        {
+          "category": "ambience",
+          "sentiment": "conflict",
+          "evidence": [
+            "The music was pleasant but too loud"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "staff were cheerful"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S49",
+      "text": "The booking website was confusing, and the host was dismissive.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "negative",
+          "evidence": [
+            "The booking website was confusing"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the host was dismissive"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S50",
+      "text": "Parking nearby was difficult, and staff could not help.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "negative",
+          "evidence": [
+            "Parking nearby was difficult"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "staff could not help"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S51",
+      "text": "The location was hard to find, and the server ignored the issue.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "negative",
+          "evidence": [
+            "The location was hard to find"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the server ignored the issue"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S52",
+      "text": "The queue outside was poorly marked, and staff were impatient.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "negative",
+          "evidence": [
+            "The queue outside was poorly marked"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "staff were impatient"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S53",
+      "text": "The opening hours were unclear, and the waiter offered no explanation.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "negative",
+          "evidence": [
+            "The opening hours were unclear"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the waiter offered no explanation"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S54",
+      "text": "The phone line kept disconnecting, and the host was rude.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "negative",
+          "evidence": [
+            "The phone line kept disconnecting"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "negative",
+          "evidence": [
+            "the host was rude"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S55",
+      "text": "The online booking was simple, and the host helped immediately.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "positive",
+          "evidence": [
+            "The online booking was simple"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the host helped immediately"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S56",
+      "text": "Parking was convenient, and staff were accommodating.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "positive",
+          "evidence": [
+            "Parking was convenient"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "staff were accommodating"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S57",
+      "text": "The location was easy to reach, and the server answered our questions.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "positive",
+          "evidence": [
+            "The location was easy to reach"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the server answered our questions"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S58",
+      "text": "The waiting area had useful signs, and staff stayed helpful.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "positive",
+          "evidence": [
+            "The waiting area had useful signs"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "staff stayed helpful"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S59",
+      "text": "The hours were clearly posted, and the waiter gave clear directions.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "positive",
+          "evidence": [
+            "The hours were clearly posted"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the waiter gave clear directions"
+          ]
+        }
+      ]
+    },
+    {
+      "record_id": "S60",
+      "text": "The phone reservation was smooth, and the host was friendly.",
+      "aspects": [
+        {
+          "category": "anecdotes/miscellaneous",
+          "sentiment": "positive",
+          "evidence": [
+            "The phone reservation was smooth"
+          ]
+        },
+        {
+          "category": "service",
+          "sentiment": "positive",
+          "evidence": [
+            "the host was friendly"
+          ]
+        }
+      ]
+    }
+  ]
+}
