@@ -6,7 +6,7 @@ import argparse
 import json
 
 from src.absa_service import ExtractionService
-from src.controllers import DirectLLM, FixedWorkflow, QueryParser
+from src.controllers import DirectLLM, DynamicAgent, FixedWorkflow, QueryParser
 from src.data_loader import load_csv
 from src.demo_mock import DEMO_QUESTION, mock_for_demo
 from src.tools import AnalysisContext
@@ -41,7 +41,9 @@ def main(argv: list[str] | None = None) -> int:
                 workflow = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock"))
                 answer = workflow.run(ctx=AnalysisContext(extraction.dataset), question=args.question, question_id="demo-rate")
             else:
-                parser.error("Method C is pending Phase 4 implementation")
+                extraction = ExtractionService(client, provider_model="mock").extract(records)
+                agent = DynamicAgent(QueryParser(client, "mock"), client, Finalizer(client, "mock"), "mock")
+                answer = agent.run(ctx=AnalysisContext(extraction.dataset), question=args.question, question_id="demo-rate")
             result = {"mode": "MOCK", "answer": answer.model_dump(mode="json")}
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

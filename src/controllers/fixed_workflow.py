@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from src.schemas import AnswerPayload, QuerySpec, ToolResult, TraceEvent
-from src.tools import AnalysisContext, dispatch_tool
+from src.tools import AnalysisContext, dispatch_tool, trace_summary
 from src.verification import Finalizer
 from .query_parser import ParseOutcome, QueryParser
 
@@ -42,7 +42,7 @@ class FixedWorkflow:
             trace.append(TraceEvent(
                 run_id=run_id, question_id=question_id, method="b", stage="analysis_tool",
                 call_id=call_id, status="ok" if result.status != "failed" else "failed", tool_name=name,
-                arguments=arguments, result_summary=result.data, error=result.error,
+                arguments=arguments, result_summary=trace_summary(result), error=result.error,
                 latency_ms=(time.perf_counter() - start) * 1000,
             ))
             return result

@@ -1,0 +1,221 @@
+"""Method C: model-driven, bounded tool selection with real feedback each round."""
+
+from __future__ import annotations
+
+import json
+import time
+import uuid
+from dataclasses import dataclass
+from typing import Any, Literal
+
+from pydantic import Field, model_validator
+
+from src.llm_client import LLMClient, LLMRequest
+from src.schemas import AnswerPayload, QuerySpec, ToolResult, TraceEvent
+from src.schemas.models import StrictModel
+from src.tools import (
+    AggregateArgs, AnalysisContext, CompareArgs, EvidenceArgs, FilterArgs,
+    dispatch_tool, trace_summary,
+)
+from src.verification import Finalizer
+from .query_parser import ParseOutcome, QueryParser
+
+
+DECISION_PROMPT = """Choose the next analysis action from the available tools using
+the question, shared QuerySpec and the actual prior tool results. Return JSON with
+action=call_tools and a nonempty calls list, or action=finish and no calls. You may
+change the next action after seeing tool results. Never request code execution,
+files, network access or a tool outside the allowlist. A failed call still uses
+budget. Finish only when the available results support the requested answer."""
+
+
+class ProposedCall(StrictModel):
+    name: str = Field(min_length=1)
+    arguments: dict[str, Any] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def json_arguments(self) -> "ProposedCall":
+        try:
+            json.dumps(self.arguments)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("tool arguments must be JSON values") from exc
+        return self
+
+
+class AgentDecision(StrictModel):
+    action: Literal["call_tools", "finish"]
+    calls: list[ProposedCall] = Field(default_factory=list, max_length=20)
+
+    @model_validator(mode="after")
+    def coherent(self) -> "AgentDecision":
+        if self.action == "finish" and self.calls:
+            raise ValueError("finish cannot contain tool calls")
+        if self.action == "call_tools" and not self.calls:
+            raise ValueError("call_tools requires at least one call")
+        return self
+
+
+_ARG_MODELS = {
+    "filter_records": FilterArgs,
+    "aggregate_aspects": AggregateArgs,
+    "compare_aspects": CompareArgs,
+    "get_evidence": EvidenceArgs,
+}
+
+
+def build_tools_for_state(ctx: AnalysisContext, remaining_tool_calls: int) -> list[dict[str, Any]]:
+    if remaining_tool_calls <= 0:
+        return []
+    # Every tool is read-only and has a valid path from the current dataset. No task
+    # type predetermines the single next tool; the model sees all four choices.
+    return [{"name": name, "arguments_schema": model.model_json_schema()} for name, model in _ARG_MODELS.items()]
+
+
+def _has_minimum_evidence(query: QuerySpec, results: list[ToolResult]) -> bool:
+    valid_names = {result.tool_name for result in results if result.status in {"ok", "partial"}}
+    if query.conditions and "filter_records" not in valid_names:
+        return False
+    required = {
+        "count": "filter_records" if query.metric == "distinct_record_count" and query.conditions else "aggregate_aspects",
+        "rate": "aggregate_aspects",
+        "selection": "filter_records",
+        "comparison": "compare_aspects",
+        "evidence_explanation": "get_evidence",
+    }.get(query.task_type)
+    if required not in valid_names:
+        return False
+    if query.needs_evidence and "get_evidence" not in valid_names:
+        return False
+    return True
+
+
+@dataclass
+class DynamicAgent:
+    parser: QueryParser
+    decider: LLMClient
+    finalizer: Finalizer
+    provider_model: str
+    decision_prompt_version: str = "decision-v1"
+
+    MAX_ROUNDS = 4
+    MAX_TOOL_CALLS = 6
+
+    def run(self, *, ctx: AnalysisContext, question: str, question_id: str | None = None,
+            parsed: ParseOutcome | None = None) -> AnswerPayload:
+        outcome = parsed if parsed is not None else self.parser.parse(question)
+        if outcome.status == "unavailable_metadata":
+            return AnswerPayload(method="c", question_id=question_id, status="insufficient_info",
+                                 answer_text=f"Required metadata unavailable: {', '.join(outcome.missing_metadata)}.",
+                                 coverage=ctx.dataset.coverage,
+                                 usage={"api_requests": outcome.requests, "parser_requests": outcome.requests})
+        if outcome.status != "ok" or outcome.query is None:
+            return AnswerPayload(method="c", question_id=question_id, status="failed", answer_text="",
+                                 error_code=outcome.error_code or "query_parse_failed", coverage=ctx.dataset.coverage,
+                                 usage={"api_requests": outcome.requests, "parser_requests": outcome.requests})
+        query = outcome.query
+        if query.task_type in {"insufficient_info", "clarification", "unsupported"}:
+            status = "insufficient_info" if query.task_type == "insufficient_info" else "clarification" if query.task_type == "clarification" else "failed"
+            return AnswerPayload(method="c", question_id=question_id, status=status,
+                                 answer_text="Required information is unavailable." if status == "insufficient_info" else "",
+                                 error_code="unsupported_query" if status == "failed" else None,
+                                 coverage=ctx.dataset.coverage,
+                                 usage={"api_requests": outcome.requests, "parser_requests": outcome.requests})
+
+        run_id = str(uuid.uuid4())
+        results: list[ToolResult] = []
+        trace: list[TraceEvent] = []
+        seen: set[str] = set()
+        tool_calls = 0
+        decision_rounds = 0
+        decision_input_tokens: int | None = 0
+        decision_output_tokens: int | None = 0
+        for round_no in range(1, self.MAX_ROUNDS + 1):
+            if tool_calls >= self.MAX_TOOL_CALLS:
+                break
+            decision_rounds += 1
+            request = LLMRequest(
+                stage="dynamic_decision", system_prompt=DECISION_PROMPT,
+                payload={
+                    "question": question, "question_id": question_id,
+                    "query": query.model_dump(mode="json"),
+                    "history": [result.model_dump(mode="json") for result in results],
+                    "remaining_tool_calls": self.MAX_TOOL_CALLS - tool_calls,
+                    "available_tools": build_tools_for_state(ctx, self.MAX_TOOL_CALLS - tool_calls),
+                    "prompt_version": self.decision_prompt_version,
+                },
+                schema_name="AgentDecision",
+            )
+            start = time.perf_counter()
+            response = None
+            try:
+                response = self.decider.complete_json(request)
+                decision_input_tokens = _add_tokens(decision_input_tokens, response.input_tokens)
+                decision_output_tokens = _add_tokens(decision_output_tokens, response.output_tokens)
+                if response.model != self.provider_model:
+                    raise ValueError("model identifier mismatch")
+                decision = AgentDecision.model_validate(response.content)
+            except Exception:
+                if response is None:
+                    decision_input_tokens = decision_output_tokens = None
+                trace.append(TraceEvent(run_id=run_id, question_id=question_id, method="c", stage="decision",
+                                        decision_round=round_no, status="invalid", error="invalid_decision_or_transport",
+                                        latency_ms=(time.perf_counter() - start) * 1000))
+                continue
+            trace.append(TraceEvent(run_id=run_id, question_id=question_id, method="c", stage="decision",
+                                    decision_round=round_no, status="ok", result_summary={"action": decision.action, "requested_calls": len(decision.calls)},
+                                    latency_ms=(time.perf_counter() - start) * 1000))
+            if decision.action == "finish":
+                if _has_minimum_evidence(query, results):
+                    break
+                trace.append(TraceEvent(run_id=run_id, question_id=question_id, method="c", stage="finish_check",
+                                        decision_round=round_no, status="invalid", error="insufficient_evidence"))
+                continue
+            for proposed in decision.calls:
+                if tool_calls >= self.MAX_TOOL_CALLS:
+                    trace.append(TraceEvent(run_id=run_id, question_id=question_id, method="c", stage="budget",
+                                            decision_round=round_no, status="invalid", error="tool_budget_exhausted"))
+                    break
+                tool_calls += 1
+                call_id = f"{run_id}-{tool_calls}"
+                signature = json.dumps({"name": proposed.name, "arguments": proposed.arguments}, sort_keys=True, ensure_ascii=False)
+                started = time.perf_counter()
+                if signature in seen:
+                    result = ToolResult(call_id=call_id, tool_name=proposed.name, status="failed", error="duplicate_call", coverage=ctx.dataset.coverage)
+                else:
+                    seen.add(signature)
+                    result = dispatch_tool(ctx, call_id=call_id, name=proposed.name, arguments=proposed.arguments)
+                results.append(result)
+                trace.append(TraceEvent(
+                    run_id=run_id, question_id=question_id, method="c", stage="analysis_tool", decision_round=round_no,
+                    call_id=call_id, status="ok" if result.status != "failed" else "failed", tool_name=proposed.name,
+                    arguments=proposed.arguments, result_summary=trace_summary(result), error=result.error,
+                    latency_ms=(time.perf_counter() - started) * 1000,
+                ))
+            if tool_calls >= self.MAX_TOOL_CALLS:
+                break
+        if not _has_minimum_evidence(query, results):
+            return AnswerPayload(method="c", question_id=question_id, status="failed", answer_text="",
+                                 error_code="budget_exceeded" if tool_calls >= self.MAX_TOOL_CALLS else "insufficient_evidence",
+                                 coverage=ctx.dataset.coverage, tool_trace=trace,
+                                 usage={"api_requests": outcome.requests + decision_rounds, "parser_requests": outcome.requests,
+                                        "decision_rounds": decision_rounds, "analysis_tool_calls": tool_calls,
+                                        "input_tokens": _sum_known(outcome.input_tokens, decision_input_tokens),
+                                        "output_tokens": _sum_known(outcome.output_tokens, decision_output_tokens)})
+        answer = self.finalizer.finish(method="c", question=question, question_id=question_id,
+                                       query=query, ctx=ctx, results=results, trace=trace)
+        answer_usage = answer.usage
+        usage = {**answer_usage,
+                 "api_requests": outcome.requests + decision_rounds + (answer_usage.get("api_requests") or 0),
+                 "parser_requests": outcome.requests, "decision_rounds": decision_rounds,
+                 "analysis_tool_calls": tool_calls,
+                 "input_tokens": _sum_known(outcome.input_tokens, decision_input_tokens, answer_usage.get("input_tokens")),
+                 "output_tokens": _sum_known(outcome.output_tokens, decision_output_tokens, answer_usage.get("output_tokens"))}
+        return answer.model_copy(update={"usage": usage})
+
+
+def _add_tokens(current: int | None, observed: int | None) -> int | None:
+    return current + observed if current is not None and observed is not None else None
+
+
+def _sum_known(*values: int | None) -> int | None:
+    return sum(values) if all(value is not None for value in values) else None

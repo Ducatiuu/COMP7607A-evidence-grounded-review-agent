@@ -38,7 +38,10 @@ def mock_for_demo(records: RecordSet, *, method: str, question: str | None = Non
             "task_type": "rate", "categories": ["service"], "metric": "negative_rate",
             "denominator_spec": "aspect_mentions", "needs_evidence": False,
         }, model="mock"))
-    if method == "b":
+    if method == "c":
+        responses.append(LLMResponse(content={"action": "call_tools", "calls": [{"name": "aggregate_aspects", "arguments": {"categories": ["service"], "metric": "negative_rate", "denominator_spec": "aspect_mentions"}}]}, model="mock"))
+        responses.append(LLMResponse(content={"action": "finish", "calls": []}, model="mock"))
+    if method in {"b", "c"}:
         responses.append(LLMResponse(content={
             "status": "ok", "answer_text": "Two of three service mentions are negative (66.7%).",
             "numeric_claims": [{"metric": "negative_rate", "category": "service", "scope_ids": ["R01", "R02", "R03", "R04"], "value": 2 / 3, "numerator": 2, "denominator": 3, "unit": "fraction"}],

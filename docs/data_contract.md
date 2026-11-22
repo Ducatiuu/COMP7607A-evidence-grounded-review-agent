@@ -26,8 +26,14 @@ All external and cross-module objects use Pydantic v2 models in `src/schemas/mod
 
 `AnswerPayload` is the common output envelope for A/B/C, including failure and partial states, claims, complete selected ID set, citations, denominator explanation, coverage, trace, error code and usage. Failure requires an error code. `TraceEvent` records the action and outcome, not private chain of thought. `ToolResult` carries an explicit status and coverage. Semantic evidence quality needs independent assessment; structural checks only establish ID, quote and numerical consistency.
 
+`comparison_groups` is an ordered list of tied category groups. B/C output checks compare it with the actual comparison tool result. A gets only common schema validation. B/C numeric claims must match real tool values, query scope and denominator type; selection IDs must match a full-scope filter of the QuerySpec predicates. Citation quotes must be exact original substrings and their IDs must have been retrieved by the evidence tool. These checks do not prove the semantic content of prose or the relevance of a quote.
+
 The offline `LLMClient.complete_json(LLMRequest) -> LLMResponse` protocol permits dependency injection. `MockLLMClient` returns only supplied fixtures, logs requests, and fails when its queue is exhausted. It is not a live provider or an ABSA algorithm.
 
 ## Extraction service
 
 `ExtractionService.extract(RecordSet) -> ExtractionRun` processes each record in input order. Each record gets at most one initial request and one extraction retry; failed attempts remain `status=failed` in the dataset after that. The service validates returned ID, schema, category uniqueness, exact spans and actual model identifier. Its cache key hashes canonical JSON of original text, provider/model, prompt version, schema version and extraction configuration. Cache entries hold aspects without record IDs; hits are rebound to the current record and revalidated. Only validated successes are cached. `requests`, `retries` and `cache_hits` describe physical calls and reuse separately. Disk cache is optional and should live under ignored `outputs/`.
+
+## Dynamic control budget
+
+`DynamicAgent` shares the parser, extraction dataset, tool dispatcher, finalizer and verifier with B. It asks the model to choose JSON actions after each actual tool result. A decision request counts one round even when malformed or timed out; maximum four rounds. Each submitted tool call, including unknown, invalid or duplicate calls, counts once; maximum six calls. A multi-call action stops before the seventh call. Parser, answer and at most one output repair are separate model requests and do not reset dynamic counters. The trace stores decision action summaries and tool IDs/counts; evidence trace summaries omit raw review text. Unknown token usage remains null. An answer may complete at a budget boundary if existing verified evidence suffices.

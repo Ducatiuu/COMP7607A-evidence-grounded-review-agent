@@ -1,6 +1,6 @@
 # Evidence-Grounded ABSA Agent
 
-Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools and a shared structured query parser. A/B/C controllers, evaluation and UI are subsequent phases.
+Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, a shared structured query parser and A/B/C controllers. Evaluation and UI are subsequent phases.
 
 ## Set up
 
@@ -22,8 +22,9 @@ The current CLI fixture accepts only the unchanged `data/demo/core.csv` and the 
 .\.venv\Scripts\python -m src.cli extract --input data/demo/core.csv --mock
 .\.venv\Scripts\python -m src.cli ask --method a --input data/demo/core.csv --question "What is the negative service rate?" --mock
 .\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "What is the negative service rate?" --mock
+.\.venv\Scripts\python -m src.cli ask --method c --input data/demo/core.csv --question "What is the negative service rate?" --mock
 ```
 
-Expected service result: 2 negative records / 3 records mentioning service = 2/3. Method A receives only all four raw reviews and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C is pending Phase 4. Arbitrary questions, uploaded datasets and live API execution are not yet configured in this CLI.
+Expected service result: 2 negative records / 3 records mentioning service = 2/3. Method A receives only all four raw reviews and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C uses the same extraction, parser, tools and finalizer, but a bounded mock decision loop chooses its tool calls after seeing results. Arbitrary questions, uploaded datasets and live API execution are not yet configured in this CLI.
 
 The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Raw data, gold labels, credentials, and local run outputs are ignored by Git.

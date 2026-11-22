@@ -40,3 +40,17 @@ def dispatch_tool(ctx: AnalysisContext, *, call_id: str, name: str, arguments: d
         )
     except (ValueError, TypeError):
         return ToolResult(call_id=call_id, tool_name=name, status="failed", error="invalid_tool_arguments_or_scope", coverage=ctx.dataset.coverage)
+
+
+def trace_summary(result: ToolResult) -> dict[str, Any] | None:
+    """Retain auditable IDs/counts without copying source review text into traces."""
+    if result.data is None:
+        return None
+    if result.tool_name == "get_evidence":
+        return {
+            "all_record_ids": result.data["all_record_ids"],
+            "example_ids": [item["record_id"] for item in result.data["examples"]],
+            "status": result.data["status"],
+            "coverage": result.data["coverage"],
+        }
+    return result.data

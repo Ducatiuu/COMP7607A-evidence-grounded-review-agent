@@ -18,7 +18,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P3-A | Direct raw-pack Method A | P0-SCHEMA | Complete raw input, no extraction/tools, schema failure retained | PASS (offline) | NOT AUTHORIZED |
 | P3-B | Fixed Method B | P1-EXTRACT, P2-PARSER, P3-DISPATCH, P3-VERIFY | Count/rate/selection/comparison/metadata branches and trace tested | PASS (offline) | NOT AUTHORIZED |
 | P3-CLI | Offline extract and A/B CLI | P3-A, P3-B | Actual commands yield MOCK output; unsupported fixture rejected | PASS (offline) | NOT AUTHORIZED |
-| P4-C | Bounded dynamic C controller | P3-B | Four rounds/six calls boundaries; feedback changes next action | PENDING | NOT AUTHORIZED |
+| P4-C | Bounded dynamic C controller | P3-B | Four rounds/six calls boundaries; feedback changes next action | PASS (offline) | NOT AUTHORIZED |
 | P5-DATA | SemEval parser, audited splits, manifests and annotation templates | P1-LOAD | Source/hash/overlap checks; missing human review shown as pending | PENDING | NOT AUTHORIZED |
 | P5-EVAL | Metrics and resumable offline experiment runner | P3-B, P4-C | Failure retention, independent references and MOCK dry-run | PENDING | NOT AUTHORIZED |
 | P6-UI | Streamlit upload, analysis and comparison | P3-B, P4-C | Interactive offline demo path and clear MOCK status | PENDING | NOT AUTHORIZED |
