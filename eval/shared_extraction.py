@@ -11,10 +11,7 @@ from typing import Literal
 
 from pydantic import Field, model_validator
 
-from src.absa_service import ExtractionService
 from src.data_loader import dataset_fingerprint
-from src.demo_mock import mock_for_demo
-from src.llm_telemetry import RecordingLLMClient
 from src.schemas import ExtractionDataset, RecordSet
 from src.schemas.models import StrictModel
 
@@ -90,6 +87,10 @@ def load_shared_extraction(records: RecordSet, directory: str | Path) -> tuple[E
 
 def prepare_mock_shared_extraction(records: RecordSet, directory: str | Path) -> tuple[ExtractionDataset, str, SharedExtractionManifest]:
     """Run extraction once; matching reruns verify and reuse the existing artifact."""
+    from src.absa_service import ExtractionService
+    from src.demo_mock import mock_for_demo
+    from src.llm_telemetry import RecordingLLMClient
+
     directory = Path(directory)
     filenames = ("manifest.json", "dataset.json", "model_calls.jsonl")
     if any((directory / name).exists() for name in filenames):

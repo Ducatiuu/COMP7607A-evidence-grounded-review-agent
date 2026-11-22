@@ -8,10 +8,13 @@ from itertools import combinations
 from math import isfinite
 from pathlib import Path
 
-from .efficiency import latency_stats, summarize_model_calls
+from src.schemas import ExtractionDataset, RecordSet
+
+from .efficiency import ModelCallRow, latency_stats, summarize_model_calls
 from .metrics import score_answer, summarize_question_scores
 from .questions import GoldReference
 from .runner import RunManifest, RunRow
+from .shared_extraction import load_shared_extraction
 
 
 def _host_wall_latency(row: RunRow, key: str) -> float | None:
@@ -23,17 +26,20 @@ def _host_wall_latency(row: RunRow, key: str) -> float | None:
     return float(value)
 
 
-def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) -> dict:
+def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference],
+                   *, shared_extraction_dir: str | Path | None = None) -> dict:
     by_reference = {item.question_id: item for item in references}
     if len(by_reference) != len(references):
         raise ValueError("duplicate gold reference ID")
     groups = {}
+    run_manifests: dict[tuple[str, str], RunManifest] = {}
     task_hashes = {}
     for directory in map(Path, run_dirs):
         manifest = RunManifest.model_validate_json((directory / "manifest.json").read_text(encoding="utf-8"))
         key = (manifest.config.condition, manifest.config.method)
         if key in groups:
             raise ValueError("duplicate condition/method run")
+        run_manifests[key] = manifest
         if key[0] in task_hashes and task_hashes[key[0]] != manifest.tasks_sha256:
             raise ValueError("paired methods have different task manifests")
         task_hashes[key[0]] = manifest.tasks_sha256
@@ -120,5 +126,59 @@ def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) 
     summaries = []
     for group in groups.values():
         summaries.append({key: value for key, value in group.items() if key not in {"rows", "success_by_key"}})
-    return {"mode": "MOCK_ONLY_NOT_RESEARCH_RESULT", "runs": summaries,
-            "paired": paired, "repeat_variability": repeat_variability}
+    report = {"mode": "MOCK_ONLY_NOT_RESEARCH_RESULT", "runs": summaries,
+              "paired": paired, "repeat_variability": repeat_variability}
+    if shared_extraction_dir is not None:
+        if not {("main", "b"), ("main", "c")}.issubset(groups):
+            raise ValueError("shared extraction report requires main B and C runs")
+        shared_dir = Path(shared_extraction_dir)
+        dataset_path = shared_dir / "dataset.json"
+        if not dataset_path.is_file():
+            raise ValueError("shared extraction artifact is incomplete")
+        source = ExtractionDataset.model_validate_json(dataset_path.read_bytes())
+        _, shared_hash, shared_manifest = load_shared_extraction(RecordSet(records=source.records), shared_dir)
+        b_config = run_manifests[("main", "b")].config
+        c_config = run_manifests[("main", "c")].config
+        if (b_config.split != c_config.split or b_config.question_manifest_sha256 != c_config.question_manifest_sha256
+                or b_config.prompt_version != c_config.prompt_version):
+            raise ValueError("main B/C comparison configuration differs")
+        method_queries = {}
+        method_answer_requests = {}
+        method_answer_unknown_rows = {}
+        method_ledger_agreement = {}
+        method_costs = {}
+        for method in ("b", "c"):
+            run_manifest = run_manifests[("main", method)]
+            if (run_manifest.config.dataset_sha256 != shared_manifest.dataset_sha256
+                    or run_manifest.config.condition_artifact_sha256 != shared_hash
+                    or run_manifest.config.model_id != shared_manifest.provider_model):
+                raise ValueError("main B/C runs are not bound to the shared extraction")
+            group = groups[("main", method)]
+            efficiency = group["model_call_efficiency"]
+            if efficiency["available"] and efficiency["extraction_requests"]:
+                raise ValueError("method run repeated shared extraction")
+            method_queries[method] = efficiency["query_requests"] if efficiency["available"] else None
+            method_answer_requests[method] = group["api_requests_known"]
+            method_answer_unknown_rows[method] = group["api_requests_unknown_rows"]
+            method_ledger_agreement[method] = efficiency.get("request_count_agrees")
+            method_costs[method] = efficiency.get("cost_usd")
+        setup_calls = [ModelCallRow.model_validate_json(line) for line in
+                       (shared_dir / "model_calls.jsonl").read_text(encoding="utf-8").splitlines()]
+        setup_cost = None if any(call.cost_usd is None for call in setup_calls) else sum(call.cost_usd for call in setup_calls)
+        report["shared_extraction"] = {
+            "manifest_sha256": shared_hash, "dataset_sha256": shared_manifest.dataset_sha256,
+            "setup_physical_requests": shared_manifest.requests,
+            "setup_wall_latency_ms": shared_manifest.extraction_wall_latency_ms,
+            "method_query_physical_requests": method_queries,
+            "method_answer_requests_known": method_answer_requests,
+            "method_answer_requests_unknown_rows": method_answer_unknown_rows,
+            "method_ledger_agreement": method_ledger_agreement,
+            "setup_cost_usd": setup_cost,
+            "method_cost_usd": method_costs,
+            "combined_physical_requests": None if any(value is None for value in method_queries.values())
+                                          else shared_manifest.requests + sum(method_queries.values()),
+            "cost_usd": None if setup_cost is None or any(value is None for value in method_costs.values())
+                        else setup_cost + sum(method_costs.values()),
+            "scope": "one shared setup plus main B/C observed calls; other conditions excluded",
+        }
+    return report

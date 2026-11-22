@@ -9,6 +9,7 @@ from eval.run_method import main as run_method_main
 from eval.shared_extraction import load_shared_extraction, prepare_mock_shared_extraction
 from eval.questions import GoldReference
 from scripts.prepare_shared_extraction import main as prepare_main
+from scripts.summarize_runs import main as summarize_main
 from src.data_loader import load_csv
 from src.schemas import RecordSet
 
@@ -53,6 +54,27 @@ def test_shared_extraction_is_prepared_once_and_reused_by_b_and_c(tmp_path):
     assert report["paired"]["main"]["count"] == 1
     assert all(item["scores"]["equal_type_average"] == 1 for item in report["runs"])
     assert sum(item["api_requests_known"] for item in report["runs"]) + manifest.requests == 10
+    combined = summarize_runs(directories, refs, shared_extraction_dir=shared)["shared_extraction"]
+    assert combined["manifest_sha256"] == manifest_sha256
+    assert combined["setup_physical_requests"] == 4
+    assert combined["method_query_physical_requests"] == {"b": 2, "c": 4}
+    assert combined["method_ledger_agreement"] == {"b": True, "c": True}
+    assert combined["combined_physical_requests"] == 10 and combined["cost_usd"] is None
+    target = tmp_path / "combined-report.json"
+    assert summarize_main(["--runs", *(str(item) for item in directories), "--references",
+                           str(ROOT / "data/demo/core_reference.json"), "--shared-extraction", str(shared),
+                           "--out", str(target)]) == 0
+    assert json.loads(target.read_text(encoding="utf-8"))["shared_extraction"]["combined_physical_requests"] == 10
+
+    other_shared = tmp_path / "other-shared"
+    prepare_mock_shared_extraction(records, other_shared)
+    with pytest.raises(ValueError, match="not bound to the shared extraction"):
+        summarize_runs(directories, refs, shared_extraction_dir=other_shared)
+
+    (directories[1] / "model_calls.jsonl").unlink()
+    partial = summarize_runs(directories, refs, shared_extraction_dir=shared)["shared_extraction"]
+    assert partial["method_query_physical_requests"] == {"b": 2, "c": None}
+    assert partial["combined_physical_requests"] is None
 
     repeated = tmp_path / "repeated-c"
     assert run_method_main(["--method", "c", "--condition", "repeats", "--mock",
