@@ -19,6 +19,23 @@ def test_text_only_csv_stable_id_and_original_whitespace():
     assert dataset_fingerprint(records) != dataset_fingerprint(read_csv(StringIO('text\nNice food.\n')))
 
 
+def test_repeated_reviews_get_distinct_deterministic_ids():
+    source = 'review,rating\n"Nice food",5\n"Nice food",4\n'
+    first = read_csv(StringIO(source), text_column="review")
+    second = read_csv(StringIO(source), text_column="review")
+    assert len(first.records) == 2
+    assert [record.record_id for record in first.records] == [record.record_id for record in second.records]
+    assert first.records[0].record_id != first.records[1].record_id
+    assert [record.text for record in first.records] == ["Nice food", "Nice food"]
+
+
+def test_explicit_text_and_id_column_mapping():
+    records = read_csv(StringIO('row_id,review,rating\n A1 ,"  Great food.  ",5\n'),
+                       text_column="review", id_column="row_id")
+    assert records.records[0].record_id == "A1"
+    assert records.records[0].text == "  Great food.  "
+
+
 def test_blank_line_inside_quoted_review_is_text():
     records = read_csv(StringIO('text\n"First line\n\nSecond line"\n'))
     assert records.records[0].text == "First line\n\nSecond line"
@@ -30,9 +47,17 @@ def test_blank_line_inside_quoted_review_is_text():
     "text\n\n",
     "text\n  \n",
     "record_id,text\nR1,good\nR1,bad\n",
-    "text\ngood\ngood\n",
     "text\ngood,extra\n",
+    "record_id,text\n,good\n",
+    "text\n",
 ])
 def test_bad_csv_is_not_silently_filtered(csv_text):
     with pytest.raises(DataLoadError):
         read_csv(StringIO(csv_text))
+
+
+def test_invalid_column_mapping_is_rejected():
+    with pytest.raises(DataLoadError, match="distinct"):
+        read_csv(StringIO("text\nNice food\n"), text_column="text", id_column="text")
+    with pytest.raises(DataLoadError, match="requires"):
+        read_csv(StringIO("review\nNice food\n"))

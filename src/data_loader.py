@@ -15,15 +15,17 @@ class DataLoadError(ValueError):
     pass
 
 
-def load_csv(path: str | Path) -> RecordSet:
+def load_csv(path: str | Path, *, text_column: str = "text", id_column: str = "record_id") -> RecordSet:
     with Path(path).open("r", encoding="utf-8-sig", newline="") as stream:
-        return read_csv(stream)
+        return read_csv(stream, text_column=text_column, id_column=id_column)
 
 
-def read_csv(stream: TextIO) -> RecordSet:
+def read_csv(stream: TextIO, *, text_column: str = "text", id_column: str = "record_id") -> RecordSet:
+    if not text_column or not id_column or text_column == id_column:
+        raise DataLoadError("distinct nonempty text and ID column names required")
     reader = csv.DictReader(_reject_blank_physical_rows(stream))
-    if not reader.fieldnames or "text" not in reader.fieldnames:
-        raise DataLoadError("CSV requires a text column")
+    if not reader.fieldnames or text_column not in reader.fieldnames:
+        raise DataLoadError(f"CSV requires a {text_column!r} column")
     if len(reader.fieldnames) != len(set(reader.fieldnames)):
         raise DataLoadError("duplicate CSV header")
     records: list[Record] = []
@@ -31,13 +33,25 @@ def read_csv(stream: TextIO) -> RecordSet:
         if None in row:
             raise DataLoadError(f"row {row_number}: more values than headers")
         try:
-            raw_id = row.get("record_id")
+            text = row[text_column]
+            raw_id = row.get(id_column)
+            if id_column in reader.fieldnames:
+                if not isinstance(raw_id, str) or not raw_id.strip():
+                    raise DataLoadError("blank record ID")
+                record_id = raw_id.strip()
+            elif isinstance(text, str):
+                digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+                record_id = f"auto-{row_number - 1:06d}-{digest}"
+            else:
+                record_id = None
             records.append(Record.model_validate({
-                "record_id": raw_id.strip() if isinstance(raw_id, str) else None,
-                "text": row["text"],
+                "record_id": record_id,
+                "text": text,
             }))
         except Exception as exc:
             raise DataLoadError(f"row {row_number}: invalid record: {exc}") from exc
+    if not records:
+        raise DataLoadError("CSV has no review records")
     try:
         return RecordSet(records=records)
     except ValueError as exc:
