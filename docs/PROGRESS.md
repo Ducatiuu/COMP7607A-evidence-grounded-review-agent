@@ -103,3 +103,27 @@
 - Functional checks: focused `tests/test_dynamic_agent.py tests/test_output_checks.py tests/test_fixed_workflow.py` exited 0: 16 passed before the final trace update. After the final changes, `.venv/Scripts/python -m pytest -q` exited 0: 61 passed, 0 failed, 0 skipped. Actual `python -m src.cli ask --method c --input data/demo/core.csv --question "What is the negative service rate?" --mock` exited 0; returned `mode=MOCK`, rate 2/3, one aggregate call, two decision rounds and four model requests including parser/final answer. The CLI test also exercised A/B after the final changes.
 - Boundaries verified: four unsupported finish decisions returned `insufficient_evidence`; seven proposed parallel calls caused exactly six counted calls and `budget_exceeded`; invalid tool, invalid arguments and duplicate call each consumed one call; invalid decision and timeout consumed rounds. A branching mock examined actual aggregate results: 2 negative service records led to a subsequent evidence call; 0 led to finish. One wrong final numeric claim was repaired once without changing decision/tool counters.
 - Phase 4 internal MVP gate: PASS for offline control and plumbing. This does not validate real LLM ABSA, dynamic policy quality or semantic evidence. No tag or remote push. Next: Phase 5 data/evaluation and Phase 6 UI, then Phase 7A offline experiment preparation.
+
+## Local checkpoint after Phase 4
+
+- Inspected staged Phase 4 paths and made local commit `1745b71c62747f964c4bdbada6417b0d3c492bab` on `main`. No Git remote exists; synchronization status remains NOT AUTHORIZED.
+
+## P5-XML and P5-SPLIT — PASS (synthetic code verification)
+
+- Files: `src/semeval.py`, `scripts/prepare_semeval.py`, `tests/test_semeval.py`, `docs/data_sources.md`.
+- Self-review: read parser and split code against the official SemEval XML example and source terms. The official task paper says non-commercial, no redistribution through META-SHARE; no mirror data was copied. Parser rejects DTD/entities, malformed category labels and duplicate category gold. Review found a conflicting-label duplicate could still enter dev via first occurrence; changed the rule to exclude all IDs in conflicting duplicate groups from candidate pools and record those IDs. Added source URLs and selected-label distributions to the hashed manifest.
+- Functional check: `.venv/Scripts/python -m pytest -q tests/test_semeval.py` exited 0: 5 passed. A synthetic train/test run produced deterministic 2-dev/4-test/2-pack candidate outputs, separate run CSV and gold JSON. Cross-split text and conflicting duplicate labels were audited and excluded. No licensed SemEval files were supplied or processed; actual 150/600 sampling and freeze are pending.
+
+## P5-QUESTIONS — PASS (synthetic code verification)
+
+- Files: `eval/questions.py`, `scripts/build_questions.py`, `tests/test_questions.py`. Self-review checked six task types per pack, no gold fields in runtime question objects, independent reference calculation from gold, undefined rate, tie groups and full source IDs without invented spans. A test initially searched for the string `selected_record_ids` anywhere in the question file, but this correctly appears as an expected field name; corrected the assertion to check that no answer value/key is present in a question object. Focused question+XML suite then exited 0: 8 passed.
+- Hand fixture reference matched count 2, rate 2/3, AND selection R1, service ahead of food, and evidence source IDs R1/R2. All outputs remain `CANDIDATE_UNREVIEWED`; no human wording/reference review or frozen formal manifest exists.
+
+## P5-COND and P5-METRICS — PASS (offline code verification)
+
+- Files: `eval/conditioned.py`, `eval/metrics.py`, `tests/test_conditioned.py`, `tests/test_metrics.py`. Self-review separated gold-category-conditioned scoring from joint extraction; the conditioned prompt receives only category names and review text, not gold sentiments. Failed conditioned pairs remain explicit. Metrics use all gold record IDs as denominator, preserve failed extraction, define both-empty selection F1 as 1, track ties/undefined/false refusal and require complete status for primary success. Evidence completion checks source IDs and exact quotes only; human semantic support remains separate.
+- Focused conditioned+metric suite exited 0: 7 passed. Full `.venv/Scripts/python -m pytest -q` exited 0: 76 passed, 0 failed, 0 skipped. Expected failed R04 gave category and joint TP=6, FP=0, FN=1, success coverage 3/4. Independent conditioned example gave macro F1 0.6 with a missing gold-category prediction. No real model result is claimed.
+
+## P5-HUMAN / P5-REALDATA — pending external prerequisites
+
+- `docs/annotation_guide.md` contains blank review protocols and headers; no human judgment was fabricated. The original Proposal PDF and licensed SemEval XML files are absent. Official source terms require local access and no redistribution; until authorized files and human review exist, actual dataset manifests, question/reference freeze, challenge labels and formal evaluation remain incomplete. Independent local software work proceeds with synthetic fixtures.

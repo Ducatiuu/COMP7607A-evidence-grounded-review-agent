@@ -19,9 +19,15 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P3-B | Fixed Method B | P1-EXTRACT, P2-PARSER, P3-DISPATCH, P3-VERIFY | Count/rate/selection/comparison/metadata branches and trace tested | PASS (offline) | NOT AUTHORIZED |
 | P3-CLI | Offline extract and A/B CLI | P3-A, P3-B | Actual commands yield MOCK output; unsupported fixture rejected | PASS (offline) | NOT AUTHORIZED |
 | P4-C | Bounded dynamic C controller | P3-B | Four rounds/six calls boundaries; feedback changes next action | PASS (offline) | NOT AUTHORIZED |
-| P5-DATA | SemEval parser, audited splits, manifests and annotation templates | P1-LOAD | Source/hash/overlap checks; missing human review shown as pending | PENDING | NOT AUTHORIZED |
-| P5-EVAL | Metrics and resumable offline experiment runner | P3-B, P4-C | Failure retention, independent references and MOCK dry-run | PENDING | NOT AUTHORIZED |
+| P5-XML | Local SemEval restaurant XML parser and gold separation | P1-LOAD | Real source hash, category validity, unsafe XML and ID checks | PASS (synthetic tests) | NOT AUTHORIZED |
+| P5-SPLIT | Duplicate/overlap audit and deterministic candidate packs | P5-XML | Seeded 150/600/20×30 logic and exclusion audit on fixtures | PASS (synthetic tests) | NOT AUTHORIZED |
+| P5-QUESTIONS | Six candidate questions per pack and independent gold reference code | P5-SPLIT | Hand-calculated fixture, null/ties/empty and gold separation | PASS (synthetic tests) | NOT AUTHORIZED |
+| P5-COND | Independent gold-category-conditioned sentiment prompt | P5-XML | Prompt omits gold sentiment; failed pairs retained | PASS (offline) | NOT AUTHORIZED |
+| P5-METRICS | ABSA and QA evaluation metrics | P5-QUESTIONS | F1, exact, undefined, tie, false refusal and failure tests | PASS (offline) | NOT AUTHORIZED |
+| P5-HUMAN | Question/reference/challenge/evidence human review | P5-QUESTIONS | Two independent reviewers and adjudication as specified | PENDING HUMAN WORK | NOT AUTHORIZED |
+| P5-REALDATA | Licensed SemEval acquisition and actual candidate manifests | P5-XML, P5-SPLIT | Authorized local files, hashes, distributions, overlap audit | BLOCKED: files/terms absent | NOT AUTHORIZED |
+| P5-RUNNER | Resumable offline experiment runner | P3-B, P4-C, P5-METRICS | Failure retention, MOCK dry-run and config-safe resume | PENDING | NOT AUTHORIZED |
 | P6-UI | Streamlit upload, analysis and comparison | P3-B, P4-C | Interactive offline demo path and clear MOCK status | PENDING | NOT AUTHORIZED |
-| P7A | Offline experiment branches, budget checks and report scripts | P5-DATA, P5-EVAL | All branches dry-run with explicit MOCK outputs | PENDING | NOT AUTHORIZED |
+| P7A | Offline experiment branches, budget checks and report scripts | P5-RUNNER, P5-QUESTIONS | All branches dry-run with explicit MOCK outputs | PENDING | NOT AUTHORIZED |
 
 Status reflects verified work, not intention. Each module gets a separate review and test entry in `PROGRESS.md` before PASS.
