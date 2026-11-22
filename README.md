@@ -22,6 +22,8 @@ The `MockLLMClient` is for offline tests only. The original Proposal has now bee
 
 The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path, text_column="review", id_column="row_id")` maps other header names explicitly. If the ID column is absent, each row receives a deterministic `auto-...` ID based on its position and text; identical review text on separate rows remains separate. An explicitly supplied ID column must be complete and unique. Extra CSV columns are accepted but are not currently used for analysis, so questions needing date, rating or customer identity cannot be answered from them yet. Empty reviews, missing fields, duplicate IDs, malformed rows and empty files are rejected rather than silently skipped.
 
+`src.live_runtime.run_model_method` connects any validated review `RecordSet` to A/B/C through an injected model client. The caller must supply record-count, input-character and conservative request ceilings before a model call. B/C can share a validated extraction dataset; A reads only raw reviews. The runtime counts attempted requests and known tokens across extraction and answering, including failed attempts. The character limit is a source-size guard, not a guaranteed provider token or fee cap. This path has passed injected-model tests only and is not yet exposed through a live CLI/UI command.
+
 ## Offline CLI (synthetic fixture)
 
 The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.
