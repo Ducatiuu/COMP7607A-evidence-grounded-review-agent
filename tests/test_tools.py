@@ -49,6 +49,7 @@ def test_hand_calculated_counts_rates_and_undefined():
     assert (ambience.mention_count, ambience.negative_count, ambience.rate) == (0, 0, None)
     all_records = aggregate_aspects(ctx, AggregateArgs(categories=["service"], metric="negative_rate", denominator_spec="all_records"))
     assert (all_records.stats[0].numerator, all_records.stats[0].denominator, all_records.stats[0].rate) == (2, 4, 0.5)
+    assert aggregate_aspects(ctx, AggregateArgs(metric="distinct_record_count")).scope_count == 4
 
 
 def test_conflict_is_not_negative_and_scope_is_distinct_records():

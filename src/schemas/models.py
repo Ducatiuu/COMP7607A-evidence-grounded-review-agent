@@ -225,6 +225,7 @@ class AnswerPayload(StrictModel):
     answer_text: str
     numeric_claims: list[NumericClaim] = Field(default_factory=list)
     selected_record_ids: list[str] = Field(default_factory=list)
+    comparison_groups: list[list[Category]] = Field(default_factory=list)
     citations: list[Citation] = Field(default_factory=list)
     denominator_explanation: str | None = None
     coverage: Coverage | None = None

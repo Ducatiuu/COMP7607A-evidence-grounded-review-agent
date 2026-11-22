@@ -45,15 +45,17 @@ class FilterResult(StrictModel):
 
 
 class AggregateArgs(StrictModel):
-    categories: list[Category] = Field(min_length=1)
+    categories: list[Category] = Field(default_factory=list)
     record_ids: list[str] | None = None
-    metric: Literal["mention_count", "negative_count", "negative_rate"] = "negative_count"
+    metric: Literal["distinct_record_count", "mention_count", "negative_count", "negative_rate"] = "negative_count"
     denominator_spec: Literal["aspect_mentions", "all_records"] = "aspect_mentions"
 
     @model_validator(mode="after")
     def unique_categories(self) -> "AggregateArgs":
         if len(self.categories) != len(set(self.categories)):
             raise ValueError("duplicate categories")
+        if self.metric != "distinct_record_count" and not self.categories:
+            raise ValueError("aspect metric requires categories")
         return self
 
 
@@ -73,8 +75,9 @@ class AspectStats(StrictModel):
 
 class AggregateResult(StrictModel):
     stats: list[AspectStats]
-    metric: Literal["mention_count", "negative_count", "negative_rate"]
+    metric: Literal["distinct_record_count", "mention_count", "negative_count", "negative_rate"]
     denominator_spec: Literal["aspect_mentions", "all_records"]
+    scope_count: int = Field(ge=0)
     scope_ids: list[str]
     status: Literal["ok", "partial"]
     coverage: Coverage
@@ -100,6 +103,7 @@ class CompareGroup(StrictModel):
 
 class CompareResult(StrictModel):
     metric: Literal["mention_count", "negative_count", "negative_rate"]
+    denominator_spec: Literal["aspect_mentions", "all_records"]
     groups: list[CompareGroup]
     undefined_categories: list[Category]
     stats: list[AspectStats]
@@ -183,7 +187,7 @@ def aggregate_aspects(ctx: AnalysisContext, args: AggregateArgs) -> AggregateRes
     coverage = ctx.coverage(scope)
     return AggregateResult(
         stats=[_stats(ctx, scope, category, args.denominator_spec, coverage) for category in args.categories],
-        metric=args.metric, denominator_spec=args.denominator_spec, scope_ids=scope,
+        metric=args.metric, denominator_spec=args.denominator_spec, scope_count=len(scope), scope_ids=scope,
         status="partial" if coverage.failed_ids else "ok", coverage=coverage,
     )
 
@@ -201,7 +205,7 @@ def compare_aspects(ctx: AnalysisContext, args: CompareArgs) -> CompareResult:
         else:
             values.setdefault(value, []).append(stat.category)
     return CompareResult(
-        metric=args.metric,
+        metric=args.metric, denominator_spec=args.denominator_spec,
         groups=[CompareGroup(value=value, categories=values[value]) for value in sorted(values, reverse=True)],
         undefined_categories=undefined, stats=stats, scope_ids=scope,
         status="partial" if coverage.failed_ids else "ok", coverage=coverage,

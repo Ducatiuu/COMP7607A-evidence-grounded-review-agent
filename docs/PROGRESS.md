@@ -61,3 +61,33 @@
 - Files: `src/controllers/query_parser.py`, `src/schemas/models.py`, `tests/test_query_parser.py`. Self-review checked single request, independent predicate pairs, model match, invalid parse, metadata availability and no tool-order output. Tightened QuerySpec coherence for rate, selection and comparison tasks.
 - Functional check: `.venv/Scripts/python -m pytest -q` exited 0 with 38 passed, 0 failed, 0 skipped. Mock parser made one request, retained food-positive/service-negative as two paired conditions and marked a date-dependent query `unavailable_metadata`. No live language understanding is claimed.
 - Phase 2 offline gate: PASS. `git diff --check` found no whitespace errors. Git repository is local on `main`; no remote/push authorized. Next: Phase 3 A/B, shared verification and CLI.
+
+## Local checkpoint after Phase 2
+
+- Inspected staged paths for generated/sensitive content and made local commit `bd8617caa56fcd0b22a255f3d772fa3dcc90fc1d` on `main`. No Git remote exists; synchronization status remains NOT AUTHORIZED.
+
+## P3-DISPATCH — PASS (offline)
+
+- Files: `src/tools/dispatcher.py`, `src/tools/__init__.py`, `tests/test_dispatcher.py`; `src/tools/analysis.py` gained distinct record count and explicit comparison denominator fields.
+- Self-review: only four named pure functions are reachable; Pydantic validates arguments before calling; unknown tool and invalid scope produce failed `ToolResult` with no code execution. Comparison denominator omission surfaced in a later verifier test and was fixed.
+- Tests: focused `tests/test_dispatcher.py tests/test_tools.py` exited 0: 8 passed. Full suite after Phase 3 exited 0: 53 passed, 0 failed, 0 skipped.
+
+## P3-VERIFY — PASS (offline)
+
+- Files: `src/verification/output_checks.py`, `src/verification/repair.py`, `src/schemas/models.py`, `tests/test_output_checks.py`.
+- Self-review: checked tool-backed numbers and scope, denominator type, citation ID and exact source quote, full selection set, comparison tie groups, partial coverage and one repair cap. Found that an otherwise valid rate could be accepted under the wrong denominator type; added QuerySpec denominator matching. A comparison result initially lacked that field; fixed and reran tests. Unknown token usage after transport failure remains null rather than false zero.
+- Tests: focused verifier/A/B/CLI suite exited 0: 14 passed. Full suite exited 0: 53 passed. Expected wrong rate 0.5 failed, repair to 2/3 passed; persistent wrong rate returned `answer_verification_failed` after exactly two answer calls. Validation is structural and does not establish semantic support for free prose or quotes.
+
+## P3-A — PASS (offline)
+
+- Files: `src/controllers/direct_llm.py`, `tests/test_direct_llm.py`. Self-review checked raw pack completeness, no extraction/query/tool data in request, empty tool trace and failure envelope for invalid schema. Focused suite and full suite above passed. A received all R01–R04 original texts and made one MOCK request. No actual baseline model quality was tested.
+
+## P3-B — PASS (offline)
+
+- Files: `src/controllers/fixed_workflow.py`, `src/controllers/query_parser.py`, `tests/test_fixed_workflow.py`. Self-review checked deterministic recipes, shared parser/finalizer, actual tool traces, metadata refusal, count/rate/selection/comparison and repair failures. Adjusted evidence choice to use negative IDs for negative metrics and combined known parser/finalizer tokens without substituting zero for unknown usage. Focused suite and full suite above passed; rate trace showed numerator 2, denominator 3, one aggregate call; selection called filter then evidence; missing date used only the parser call.
+
+## P3-CLI — PASS (synthetic offline demo)
+
+- Files: `src/demo_mock.py`, `src/cli.py`, `tests/test_cli.py`, `README.md`. The fixture is bound to the exact SHA-256 fingerprint of `data/demo/core.csv` and one exact question. Self-review checked that arbitrary input/question is rejected and `mode=MOCK` is explicit; Method C is not yet exposed as working.
+- Actual commands `python -m src.cli extract ... --mock` and `python -m src.cli ask --method a|b ... --mock` each exited 0. Extract returned 4 successes, 0 failures, 4 requests. Both A/B returned rate `0.6666666666666666`; A had no tool trace, B had one `aggregate_aspects` trace with 2/3. Focused CLI test and full 53-test suite passed. CLI's predefined mock response is a plumbing demonstration, not arbitrary natural-language handling or live API validation.
+- Phase 3 offline gate: PASS. `git diff --check` had no whitespace error. Next: P4-C. GitHub sync remains NOT AUTHORIZED; local-only work continues.

@@ -24,6 +24,8 @@ class ParseOutcome:
     error_code: str | None
     missing_metadata: tuple[str, ...] = ()
     requests: int = 1
+    input_tokens: int | None = None
+    output_tokens: int | None = None
 
 
 @dataclass
@@ -40,14 +42,19 @@ class QueryParser:
             payload={"question": question, "prompt_version": self.prompt_version},
             schema_name="QuerySpec",
         )
+        response = None
         try:
             response = self.client.complete_json(request)
             if response.model != self.provider_model:
                 raise ValueError("model identifier mismatch")
             query = QuerySpec.model_validate(response.content)
         except Exception:
-            return ParseOutcome(status="failed", query=None, error_code="invalid_query_parse")
+            return ParseOutcome(status="failed", query=None, error_code="invalid_query_parse",
+                                input_tokens=response.input_tokens if response else None,
+                                output_tokens=response.output_tokens if response else None)
         missing = tuple(sorted(set(query.metadata_required) - available_metadata))
         if missing:
-            return ParseOutcome(status="unavailable_metadata", query=query, error_code="metadata_unavailable", missing_metadata=missing)
-        return ParseOutcome(status="ok", query=query, error_code=None)
+            return ParseOutcome(status="unavailable_metadata", query=query, error_code="metadata_unavailable", missing_metadata=missing,
+                                input_tokens=response.input_tokens, output_tokens=response.output_tokens)
+        return ParseOutcome(status="ok", query=query, error_code=None,
+                            input_tokens=response.input_tokens, output_tokens=response.output_tokens)
