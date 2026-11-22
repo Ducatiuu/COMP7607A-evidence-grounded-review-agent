@@ -84,7 +84,8 @@ class RunRow(StrictModel):
                 or self.answer.status != self.status):
             raise ValueError("run row fields are inconsistent")
         usage_requests = self.answer.usage.get("api_requests")
-        if isinstance(usage_requests, int) and self.api_requests != usage_requests:
+        valid_usage = type(usage_requests) is int and usage_requests >= 0
+        if (valid_usage and self.api_requests != usage_requests) or (not valid_usage and self.api_requests is not None):
             raise ValueError("run row request usage is inconsistent")
         return self
 
@@ -155,6 +156,9 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
     existing = _load_rows(rows_path, config, set(keys))
     if config.max_api_requests is not None and any(row.api_requests is None for attempts in existing.values() for row in attempts):
         raise ValueError("cannot safely resume request cap with unknown prior usage")
+    if config.max_api_requests is not None and any(
+            row.api_requests > config.estimated_requests_per_task for attempts in existing.values() for row in attempts):
+        raise ValueError("cannot safely resume request cap after per-task estimate was exceeded")
     requests_spent = sum(row.api_requests for attempts in existing.values() for row in attempts if row.api_requests is not None)
     attempts_spent = sum(len(attempts) for attempts in existing.values())
     recorded = skipped_existing = retained_failures = pending = 0
@@ -188,7 +192,7 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
         except Exception:
             answer = AnswerPayload(method=config.method, question_id=task.question_id, status="failed", answer_text="", error_code="runner_execution_error")
         api_requests = answer.usage.get("api_requests")
-        if not isinstance(api_requests, int) or api_requests < 0:
+        if type(api_requests) is not int or api_requests < 0:
             api_requests = None
         row = RunRow(
             key=task.key, question_id=task.question_id, pack_id=task.pack_id,
@@ -206,5 +210,9 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
         attempts_spent += 1
         if api_requests is not None:
             requests_spent += api_requests
+        if config.max_api_requests is not None and (api_requests is None or api_requests > config.estimated_requests_per_task):
+            budget_stopped = True
+            pending = int(needs_attempt(task)) + sum(1 for rest in tasks[index + 1:] if needs_attempt(rest))
+            break
     return RunSummary(config_sha256=config.fingerprint, recorded=recorded, skipped_existing=skipped_existing,
                       retained_failures=retained_failures, pending=pending, budget_stopped=budget_stopped)

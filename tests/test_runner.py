@@ -69,6 +69,42 @@ def test_request_budget_stops_before_next_task_and_resume_is_idempotent(tmp_path
     assert calls == ["Q1"]
 
 
+@pytest.mark.parametrize("requests", [None, 2, True, -1])
+def test_request_cap_stops_after_unknown_or_underestimated_usage_in_same_run(tmp_path, requests):
+    config = _config(max_api_requests=5, estimated_requests_per_task=1)
+    calls = []
+
+    def execute(task):
+        calls.append(task.question_id)
+        if requests is None:
+            raise TimeoutError()
+        return _answer(task, requests=requests)
+
+    summary = run_tasks(config, _tasks(), tmp_path, execute)
+    assert (summary.recorded, summary.pending, summary.budget_stopped) == (1, 1, True)
+    assert calls == ["Q1"]
+    rows = [json.loads(line) for line in (tmp_path / "answers.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 1 and rows[0]["api_requests"] == (2 if requests == 2 else None)
+    if requests != 2:
+        with pytest.raises(ValueError, match="unknown prior usage"):
+            run_tasks(config, _tasks(), tmp_path, execute)
+        if requests is True:
+            rows[0]["api_requests"] = 1
+            (tmp_path / "answers.jsonl").write_text(json.dumps(rows[0]) + "\n", encoding="utf-8")
+            with pytest.raises(ValueError, match="invalid JSONL row"):
+                run_tasks(config, _tasks(), tmp_path, execute)
+    else:
+        with pytest.raises(ValueError, match="per-task estimate was exceeded"):
+            run_tasks(config, _tasks(), tmp_path, execute)
+
+
+def test_request_stop_counts_pending_explicit_retry(tmp_path):
+    config = _config(max_api_requests=5, estimated_requests_per_task=1)
+    summary = run_tasks(config, _tasks()[:1], tmp_path, lambda task: _answer(task, "failed", True),
+                        retry_failed=True)
+    assert (summary.recorded, summary.pending, summary.budget_stopped) == (1, 1, True)
+
+
 def test_failed_execution_is_row_and_unknown_usage_blocks_budgeted_resume(tmp_path):
     config = _config(max_api_requests=3, estimated_requests_per_task=1)
 
