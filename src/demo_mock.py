@@ -4,9 +4,13 @@ from __future__ import annotations
 
 from collections import deque
 
+from src.absa_service import ExtractionService
+from src.controllers import DirectLLM, DynamicAgent, FixedWorkflow, QueryParser
 from src.data_loader import dataset_fingerprint
 from src.llm_client import LLMResponse, MockLLMClient
-from src.schemas import RecordSet
+from src.schemas import AnswerPayload, RecordSet
+from src.tools import AnalysisContext
+from src.verification import Finalizer
 
 
 DEMO_QUESTION = "What is the negative service rate?"
@@ -54,3 +58,21 @@ def mock_for_demo(records: RecordSet, *, method: str, question: str | None = Non
             "denominator_explanation": "2 negative service records among 3 service mentions.",
         }, model="mock"))
     return MockLLMClient(deque(responses))
+
+
+def run_demo_method(records: RecordSet, *, method: str, question: str, question_id: str = "demo-rate") -> tuple[AnswerPayload, int]:
+    """Execute a genuine local control path with synthetic model responses."""
+    client = mock_for_demo(records, method=method, question=question)
+    if method == "a":
+        return DirectLLM(client, "mock").run(records=records, question=question, question_id=question_id), 0
+    extraction = ExtractionService(client, provider_model="mock").extract(records)
+    ctx = AnalysisContext(extraction.dataset)
+    if method == "b":
+        answer = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock")).run(ctx=ctx, question=question, question_id=question_id)
+    elif method == "c":
+        answer = DynamicAgent(QueryParser(client, "mock"), client, Finalizer(client, "mock"), "mock").run(ctx=ctx, question=question, question_id=question_id)
+    else:
+        raise ValueError("unsupported demo method")
+    usage = {**answer.usage, "extraction_requests": extraction.requests,
+             "api_requests": (answer.usage.get("api_requests") or 0) + extraction.requests}
+    return answer.model_copy(update={"usage": usage}), extraction.requests

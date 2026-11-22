@@ -6,11 +6,8 @@ import argparse
 import json
 
 from src.absa_service import ExtractionService
-from src.controllers import DirectLLM, DynamicAgent, FixedWorkflow, QueryParser
 from src.data_loader import load_csv
-from src.demo_mock import DEMO_QUESTION, mock_for_demo
-from src.tools import AnalysisContext
-from src.verification import Finalizer
+from src.demo_mock import mock_for_demo, run_demo_method
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -33,17 +30,7 @@ def main(argv: list[str] | None = None) -> int:
             result = {"mode": "MOCK", "dataset": run.dataset.model_dump(mode="json"),
                       "requests": run.requests, "retries": run.retries, "cache_hits": run.cache_hits}
         else:
-            client = mock_for_demo(records, method=args.method, question=args.question)
-            if args.method == "a":
-                answer = DirectLLM(client, "mock").run(records=records, question=args.question, question_id="demo-rate")
-            elif args.method == "b":
-                extraction = ExtractionService(client, provider_model="mock").extract(records)
-                workflow = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock"))
-                answer = workflow.run(ctx=AnalysisContext(extraction.dataset), question=args.question, question_id="demo-rate")
-            else:
-                extraction = ExtractionService(client, provider_model="mock").extract(records)
-                agent = DynamicAgent(QueryParser(client, "mock"), client, Finalizer(client, "mock"), "mock")
-                answer = agent.run(ctx=AnalysisContext(extraction.dataset), question=args.question, question_id="demo-rate")
+            answer, _ = run_demo_method(records, method=args.method, question=args.question)
             result = {"mode": "MOCK", "answer": answer.model_dump(mode="json")}
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return 0

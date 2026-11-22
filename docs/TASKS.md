@@ -26,7 +26,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P5-METRICS | ABSA and QA evaluation metrics | P5-QUESTIONS | F1, exact, undefined, tie, false refusal and failure tests | PASS (offline) | NOT AUTHORIZED |
 | P5-HUMAN | Question/reference/challenge/evidence human review | P5-QUESTIONS | Two independent reviewers and adjudication as specified | PENDING HUMAN WORK | NOT AUTHORIZED |
 | P5-REALDATA | Licensed SemEval acquisition and actual candidate manifests | P5-XML, P5-SPLIT | Authorized local files, hashes, distributions, overlap audit | BLOCKED: files/terms absent | NOT AUTHORIZED |
-| P5-RUNNER | Resumable offline experiment runner | P3-B, P4-C, P5-METRICS | Failure retention, MOCK dry-run and config-safe resume | PENDING | NOT AUTHORIZED |
+| P5-RUNNER | Resumable offline experiment runner | P3-B, P4-C, P5-METRICS | Failure retention, MOCK dry-run and config-safe resume | PASS (synthetic demo) | NOT AUTHORIZED |
 | P6-UI | Streamlit upload, analysis and comparison | P3-B, P4-C | Interactive offline demo path and clear MOCK status | PENDING | NOT AUTHORIZED |
 | P7A | Offline experiment branches, budget checks and report scripts | P5-RUNNER, P5-QUESTIONS | All branches dry-run with explicit MOCK outputs | PENDING | NOT AUTHORIZED |
 

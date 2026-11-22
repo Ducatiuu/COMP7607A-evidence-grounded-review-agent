@@ -127,3 +127,14 @@
 ## P5-HUMAN / P5-REALDATA — pending external prerequisites
 
 - `docs/annotation_guide.md` contains blank review protocols and headers; no human judgment was fabricated. The original Proposal PDF and licensed SemEval XML files are absent. Official source terms require local access and no redistribution; until authorized files and human review exist, actual dataset manifests, question/reference freeze, challenge labels and formal evaluation remain incomplete. Independent local software work proceeds with synthetic fixtures.
+
+## Local checkpoint after Phase 5 data modules
+
+- Inspected staged paths and made local commit `cac5621586e3592929633e9bf8889f64c18f5eb5` on `main`. No Git remote exists; synchronization status remains NOT AUTHORIZED.
+
+## P5-RUNNER — PASS (synthetic offline dry-run)
+
+- Files: `eval/runner.py`, `eval/run_method.py`, `src/demo_mock.py`, `src/cli.py`, `tests/test_runner.py`, `README.md`.
+- Self-review: checked append-only rows, configuration/question/task hashes, resume idempotence, explicit failed attempts, retry cap, unknown usage, pre-request budget checks and no gold in runtime tasks. Found resume would treat an `insufficient_info` answer as a failure and that a cost cap could ignore previous attempts; fixed both. Added row consistency checks and full task payload hash so changed wording cannot reuse an old run. A failed test after changing the task-key encoding was traced to its outdated test fixture condition; corrected it and reran.
+- Functional check: `.venv/Scripts/python -m pytest -q tests/test_runner.py` exited 0: 6 passed, 0 failed, 0 skipped. CLI tests also passed. Actual `python -m eval.run_method --method a|b|c --split demo --mock --out outputs/runs/smoke-*` each exited 0 and wrote one MOCK row. Observed service rate 2/3 for each method; physical request totals A=1, B=6 (4 extraction + parser + answer), C=8 (4 extraction + parser + 2 decisions + answer). Repeating C with identical config reported `recorded=0, skipped_existing=1`, preserving the prior row. No live calls or formal data were used.
+- Runner `--split dev/test` and gold/ablation/challenge branches currently reject with explicit errors until their prerequisites/implementations exist. The code gate passes for the demo dry-run; Phase 5 as a whole remains incomplete due to licensed real data and human review.

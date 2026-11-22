@@ -27,4 +27,13 @@ The current CLI fixture accepts only the unchanged `data/demo/core.csv` and the 
 
 Expected service result: 2 negative records / 3 records mentioning service = 2/3. Method A receives only all four raw reviews and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C uses the same extraction, parser, tools and finalizer, but a bounded mock decision loop chooses its tool calls after seeing results. Arbitrary questions, uploaded datasets and live API execution are not yet configured in this CLI.
 
+## Offline run ledger
+
+```powershell
+.\.venv\Scripts\python -m eval.run_method --method b --split demo --mock
+.\.venv\Scripts\python -m eval.run_method --method c --split demo --condition repeats --mock
+```
+
+Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. Configuration and full task payload hashes block accidental mixing. The current runner supports only the synthetic demo for `main` and `repeats`; formal dev/test, gold substitution, ablation and challenge execution remain pending. See [data handling](docs/data_sources.md) for local licensed-file preparation.
+
 The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Raw data, gold labels, credentials, and local run outputs are ignored by Git.
