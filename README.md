@@ -24,6 +24,8 @@ The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path,
 
 `src.live_runtime.run_model_method` connects any validated review `RecordSet` to A/B/C through an injected model client. The caller must supply record-count, input-character and conservative request ceilings before a model call. B/C can share a validated extraction dataset; A reads only raw reviews. The runtime counts attempted requests and known tokens across extraction and answering, including failed attempts. The character limit is a source-size guard, not a guaranteed provider token or fee cap. This path has passed injected-model tests only and is not yet exposed through a live CLI/UI command.
 
+`src.live_cost.plan_cost` additionally requires a dated price source, non-cached input/output rates, per-request token bounds and a USD cap. It refuses a declared worst-case plan above the cap. `CostLimitedClient` freezes further network requests if transport fails or measured tokens are missing/out of bounds. Its USD figure is an estimate from supplied rates, not a provider bill; an unexpectedly large first response or stale/incorrect prices can still violate the planned bound. No price or live-spend approval is embedded in this repository.
+
 ## Offline CLI (synthetic fixture)
 
 The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.

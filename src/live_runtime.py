@@ -14,6 +14,7 @@ from src.absa_service import ExtractionService
 from src.controllers import DirectLLM, DynamicAgent, FixedWorkflow, QueryParser
 from src.data_loader import dataset_fingerprint
 from src.llm_client import LLMClient, LLMRequest, LLMResponse
+from src.live_cost import CostLimitedClient
 from src.schemas import AnswerPayload, ExtractionDataset, RecordSet
 from src.tools import AnalysisContext
 from src.verification import Finalizer
@@ -92,7 +93,12 @@ def run_model_method(
     if type(max_api_requests) is not int or max_api_requests < bound:
         raise ValueError(f"request ceiling must allow the conservative {bound}-request bound")
 
-    counted = RequestLimitedClient(client, max_api_requests)
+    if isinstance(client, CostLimitedClient):
+        if client.plan.max_requests != max_api_requests or client.requests != 0:
+            raise ValueError("fresh cost plan must match the request ceiling")
+        counted = client
+    else:
+        counted = RequestLimitedClient(client, max_api_requests)
     fingerprint = dataset_fingerprint(records)
     if method == "a":
         query_started = time.perf_counter()
