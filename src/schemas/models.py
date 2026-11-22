@@ -123,6 +123,7 @@ class ExtractionDataset(StrictModel):
     provider_model: str = Field(min_length=1)
     prompt_version: str = Field(min_length=1)
     schema_version: str = Field(min_length=1)
+    evidence_origin: Literal["model_span", "full_sentence_unannotated"] = "model_span"
     coverage: Coverage
 
     @model_validator(mode="after")

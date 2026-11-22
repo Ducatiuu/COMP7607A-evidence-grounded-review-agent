@@ -150,3 +150,50 @@
 - Installation: `pip install -e '.[dev,ui]'` exited 0 with Streamlit 1.66.0; exact installed dependencies were recorded in `requirements.lock.txt`. Focused `tests/test_app.py tests/test_ui_state.py` exited 0: 5 passed, 0 failed, 0 skipped; Streamlit emitted 10 third-party `Pandas4Warning` notices from its chart utility, with no functional failure.
 - Interaction expectations and actual output: AppTest uploaded `core.csv`, loaded four records, extracted four successes, selected negative service evidence (2 distinct records), asked B and received 2/3 with aggregate trace, compared A/B/C, restored answer/comparison in a fresh AppTest session via URL token, and cleared local state. Another test uploaded a different CSV and a validated extraction JSON, then displayed deterministic evidence while rejecting canned Mock QA. An actual `streamlit run app.py --server.port 8506` started on `127.0.0.1`; GET `/` returned HTTP 200 and `text/html`; server was stopped after smoke check.
 - Real browser visual QA and real API behavior were not performed. The UI is a complete **synthetic offline demo path**; arbitrary uploaded CSV needs a separately supplied validated extraction JSON for analysis, and general natural-language QA awaits an approved live provider. No genuine experiment results are displayed.
+
+## P7A-GOLD — PASS (synthetic diagnostic)
+
+- Files: `eval/conditions.py`, `eval/run_method.py`, `eval/runner.py`, `data/demo/core_gold.json`, `src/schemas/models.py`, `tests/test_conditions.py`.
+- Review: matched every gold record ID to raw records and bound the source SHA-256 into the run config. Gold contains category/sentiment only, so the diagnostic uses the full original sentence as evidence and explicitly marks `full_sentence_unannotated`; it cannot claim rationale-span quality. A remains ineligible for gold substitution. The runtime question/task object receives no gold answer.
+- Tests: focused conditions suite exited 0 with 5 passes; full suite after all 7A changes exited 0 with 98 passes (10 third-party Streamlit warnings). Actual B/C gold CLI commands each recorded one MOCK answer and resumable manifest; B used 2, C used 4 requests with zero extraction requests. No formal gold labels were used.
+
+## P7A-ABLATION — PASS (synthetic diagnostic)
+
+- Files: `src/verification/repair.py`, `src/demo_mock.py`, `eval/run_method.py`, `tests/test_output_checks.py`, `tests/test_conditions.py`.
+- Review: `verify_outputs=False` bypasses only `check_answer` and its second answer-repair attempt; typed answer schema, tool allowlist and C decision budgets remain. A wrong 0.5 value passed in the ablation test while malformed numeric type failed after one call. This is a software control check, not evidence of comparative model quality.
+- Tests: focused verifier/dynamic suite exited 0 with 13 passes; gold/ablation CLI conditions suite exited 0 with 5 passes. Actual `--method c --condition ablation --mock` wrote one answer with 8 requests. Full suite 98 passes.
+
+## P7A-SUBSETS — PASS (candidate generation only)
+
+- Files: `eval/subsets.py`, `scripts/build_subsets.py`, `tests/test_subsets.py`.
+- Review: requires 20 complete packs with all six task types, rejects repeated question IDs, selects before reading model results/gold answers, hashes source question objects and manifest, and keeps `CANDIDATE_UNREVIEWED`. Diagnostic/ablation intentionally share the same 30 IDs for a direct C comparison. This is an automatic candidate selection, not human freeze.
+- Test: focused suite exited 0 with 1 pass. A 120-question synthetic fixture produced 20 repeat, 30 diagnostic, 30 ablation and 30 evidence IDs; each tested subset covered all 20 packs. Hash tampering and incomplete packs were rejected. Real candidate file generation awaits licensed SemEval files.
+
+## P7A-CHALLENGE — PASS (synthetic extraction dry-run)
+
+- Files: `eval/challenge.py`, `eval/run_challenge.py`, `data/demo/challenge_candidate.json`, `tests/test_challenge.py`.
+- Review: challenge is extraction-only, separate from QA scoring. Exact synthetic pair texts prevent canned responses being applied to other reviews. Source hash/config blocks mixing on resume. Output has `scores: null` and `human_labels: null`; no generated or human challenge labels are claimed. One synthetic candidate does not replace 40 human-written pairs.
+- Test: focused suite exited 0 with 1 pass. CLI recorded one MOCK pair with two extraction requests, service negative in source and positive in edit; rerun skipped; altered text and altered manifest failed. Full suite 98 passes.
+
+## P7A-REPORT — PASS (synthetic aggregation)
+
+- Files: `eval/report.py`, `scripts/summarize_runs.py`, `data/demo/core_reference.json`, `tests/test_report.py`.
+- Review: scorer imports separate gold reference, validates run manifest/row alignment and same-condition task hash, uses latest retained attempt, keeps absent costs null, pairs question/repeat keys and calculates pairwise primary-success differences. Repeats are summarized separately. An actual first smoke report failed because an older development manifest lacked `tasks_sha256`; this was a correct incompatibility rejection. New clean run directories succeeded without mutating old data.
+- Tests: focused suite exited 0 with 1 pass; tampered row and duplicate run were rejected. A new actual MOCK report from main A/B/C, gold B/C and C ablation returned six runs, paired main count 1, paired gold count 1 and main-vs-ablation count 1, all explicitly stamped `MOCK_ONLY_NOT_RESEARCH_RESULT`. These perfect synthetic fixture scores are not research findings.
+
+## P7A-BUDGET — PASS (planning arithmetic)
+
+- Files: `eval/budget.py`, `scripts/estimate_budget.py`, `tests/test_budget.py`, `docs/experiment_plan.md`.
+- Review: counts 160 A + 190 B + 220 C = 570 planned answer rows; conservative max 2,270 query + 1,200 main extraction + 160 challenge extraction = 3,630 requests, with no cache credit. Prices, source/date and per-request token bounds are required inputs. Pilot, conditioned sentiment and optional work are explicitly excluded and must be added before approval. No provider price is embedded or claimed current.
+- Test: focused suite exited 0 with 1 pass. A clearly fixture-only price input gave 3,630 requests and synthetic USD 7.26; negative price validation failed as expected. This is an estimate example, not a spend quote or authorization.
+
+## P7A-BLIND — PASS (synthetic export and blank templates)
+
+- Files: `eval/blind_review.py`, `scripts/make_blind_review.py`, `tests/test_blind_review.py`, `docs/annotation_guide.md`, `docs/report_template.md`.
+- Review: exported review items omit method, with a separate local private mapping; random blind IDs and order are preserved in files, and existing mapping cannot be overwritten. Free prose could still self-identify a method, so the guide requires a manual packet check. No human judgments or report data were generated.
+- Test: focused suite exited 0 with 1 pass. Three MOCK A/B/C answers yielded three blinded rows, three private mappings and zero labels; overwrite was rejected. Full suite 98 passes.
+
+## Phase 7A software gate and remaining research work
+
+- All offline branch modules passed synthetic tests. The full suite exited 0 with 98 passes, 0 failures, 0 skips and 10 third-party Streamlit `Pandas4Warning` notices. `git diff --check` exited 0; line-ending notices only. CLI challenge and gold/ablation commands exited 0. Real pilot, licensed SemEval manifests, frozen human-reviewed questions/references, 40 adjudicated pairs, 30-question evidence review, a live provider adapter and formal experiment are still blocked by missing files, human work and separate approval.
+- The original Proposal PDF remains absent. No GitHub synchronization was authorized; work remains local.

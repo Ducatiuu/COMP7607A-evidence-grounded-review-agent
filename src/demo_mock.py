@@ -61,7 +61,8 @@ def mock_for_demo(records: RecordSet, *, method: str, question: str | None = Non
 
 
 def run_demo_method(records: RecordSet, *, method: str, question: str, question_id: str = "demo-rate",
-                    extraction_dataset: ExtractionDataset | None = None) -> tuple[AnswerPayload, int]:
+                    extraction_dataset: ExtractionDataset | None = None,
+                    verify_outputs: bool = True) -> tuple[AnswerPayload, int]:
     """Execute a genuine local control path with synthetic model responses."""
     client = mock_for_demo(records, method=method, question=question, include_extraction=extraction_dataset is None)
     if method == "a":
@@ -77,9 +78,9 @@ def run_demo_method(records: RecordSet, *, method: str, question: str, question_
         extraction_requests = 0
     ctx = AnalysisContext(dataset)
     if method == "b":
-        answer = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock")).run(ctx=ctx, question=question, question_id=question_id)
+        answer = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock", verify_outputs=verify_outputs)).run(ctx=ctx, question=question, question_id=question_id)
     elif method == "c":
-        answer = DynamicAgent(QueryParser(client, "mock"), client, Finalizer(client, "mock"), "mock").run(ctx=ctx, question=question, question_id=question_id)
+        answer = DynamicAgent(QueryParser(client, "mock"), client, Finalizer(client, "mock", verify_outputs=verify_outputs), "mock").run(ctx=ctx, question=question, question_id=question_id)
     else:
         raise ValueError("unsupported demo method")
     usage = {**answer.usage, "extraction_requests": extraction_requests,

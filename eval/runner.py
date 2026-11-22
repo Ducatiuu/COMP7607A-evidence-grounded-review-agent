@@ -33,6 +33,7 @@ class RunConfig(StrictModel):
     condition: Literal["main", "repeats", "gold", "ablation", "challenge"] = "main"
     dataset_sha256: str = Field(min_length=64, max_length=64)
     question_manifest_sha256: str = Field(min_length=64, max_length=64)
+    condition_artifact_sha256: str | None = Field(default=None, min_length=64, max_length=64)
     model_id: str = Field(min_length=1)
     prompt_version: str = Field(min_length=1)
     mock: bool = True
@@ -45,6 +46,8 @@ class RunConfig(StrictModel):
     def safe_mode_and_budget(self) -> "RunConfig":
         if not self.mock:
             raise ValueError("live execution is not configured or approved")
+        if self.condition in {"gold", "challenge"} and self.condition_artifact_sha256 is None:
+            raise ValueError("condition needs a hashed source artifact")
         if self.max_api_requests is not None and self.estimated_requests_per_task is None:
             raise ValueError("request cap needs conservative per-task estimate")
         if self.max_cost_usd is not None and self.estimated_cost_per_task_usd is None:

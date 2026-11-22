@@ -1,0 +1,7 @@
+{
+  "status": "CANDIDATE_UNREVIEWED",
+  "pair_id": "synthetic-pair-01",
+  "source": {"record_id": "CH01-A", "text": "The food was excellent, but service was slow."},
+  "edited": {"record_id": "CH01-B", "text": "The food was excellent, and service was attentive."},
+  "candidate_edit_description": "Changed the service phrase while keeping the food phrase. Requires independent human review before research use."
+}

@@ -32,6 +32,13 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P6-ANALYSIS | Aspect summary and evidence controls | P6-DATA, P2-FILTER, P2-AGG, P2-EVIDENCE | Tool-backed counts, chart, exact source, partial status | PASS (offline) | NOT AUTHORIZED |
 | P6-ASK | Synthetic A/B/C question interaction | P6-DATA, P3-A, P3-B, P4-C | MOCK answer, denominator, trace and restricted arbitrary data | PASS (synthetic demo) | NOT AUTHORIZED |
 | P6-COMPARE | A/B/C shared-extraction view and results status | P6-ASK | Same fixture and shared B/C artifact, costs and MOCK labels | PASS (synthetic demo) | NOT AUTHORIZED |
-| P7A | Offline experiment branches, budget checks and report scripts | P5-RUNNER, P5-QUESTIONS | All branches dry-run with explicit MOCK outputs | PENDING | NOT AUTHORIZED |
+| P7A-GOLD | Gold-label substitution for B/C; full sentence provenance | P5-RUNNER, P5-XML | Gold ID alignment/hash, zero extraction calls, MOCK run/resume | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-ABLATION | C output-check and repair ablation | P3-VERIFY, P5-RUNNER | Wrong numeric claim bypasses output check; schema still rejects; MOCK CLI | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-SUBSETS | Pre-result 20/30/30 question candidate manifests | P5-QUESTIONS | Complete pack/type coverage, deterministic hash, unreviewed marker | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-CHALLENGE | Extraction-only challenge candidate dry-run | P1-EXTRACT | Pair validation, two extraction calls, resume, no human score | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-REPORT | Independent MOCK answer scoring and paired summaries | P5-METRICS, P5-RUNNER | Separate reference, pair IDs/deltas, missing/failure/unknown usage | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-BUDGET | Request/token cost planning and real-run approval checklist | P5-RUNNER | 570 answers, explicit bounds/prices, no assumed provider cost | PASS (planning code) | NOT AUTHORIZED |
+| P7A-BLIND | Method-blinded review export and blank report template | P7A-SUBSETS, P7A-REPORT | Private mapping, no human labels, no overwrite | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-REAL | Real pilot, formally frozen data and full experiment | P5-HUMAN, P5-REALDATA, provider/budget approval | Actual licensed data, human review, real logs and holdout permission | BLOCKED: external prerequisites | NOT AUTHORIZED |
 
 Status reflects verified work, not intention. Each module gets a separate review and test entry in `PROGRESS.md` before PASS.

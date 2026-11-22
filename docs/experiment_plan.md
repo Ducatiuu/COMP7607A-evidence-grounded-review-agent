@@ -1,0 +1,54 @@
+# Offline experiment preparation
+
+All commands here use synthetic fixtures. `MOCK` outputs verify software flow, not research results. Licensed SemEval XML, human question/reference review, adjudicated challenge labels, a real provider and a separately approved budget are absent.
+
+## Dry-run conditions
+
+Run from the repository root after installing `.venv`:
+
+```powershell
+.\.venv\Scripts\python -m eval.run_method --method a --condition main --mock --out outputs/runs/demo/main-a
+.\.venv\Scripts\python -m eval.run_method --method b --condition main --mock --out outputs/runs/demo/main-b
+.\.venv\Scripts\python -m eval.run_method --method c --condition main --mock --out outputs/runs/demo/main-c
+.\.venv\Scripts\python -m eval.run_method --method c --condition repeats --mock --out outputs/runs/demo/repeats-c
+.\.venv\Scripts\python -m eval.run_method --method b --condition gold --mock --out outputs/runs/demo/gold-b
+.\.venv\Scripts\python -m eval.run_method --method c --condition gold --mock --out outputs/runs/demo/gold-c
+.\.venv\Scripts\python -m eval.run_method --method c --condition ablation --mock --out outputs/runs/demo/ablation-c
+.\.venv\Scripts\python -m eval.run_challenge --mock --out outputs/runs/demo/challenge
+```
+
+`repeats` writes repeat indices 1 and 2. `gold` substitutes synthetic aspect labels for B/C and marks the full source sentence as **unannotated evidence**, because gold has no rationale spans. `ablation` disables C's output checks and their repair while retaining schema, tool safety and decision budgets. Challenge extracts two synthetic candidate records; it writes no human labels or scores. The 40 formal human-authored and independently annotated pairs remain pending.
+
+QA directories contain a config and full task hash, append-only answer rows, retained failures and explicit retry via `--retry-failed`. Reuse a directory only with identical config/tasks; older incompatible manifests are rejected. `--max-api-requests N` uses conservative per-task bounds. Live calls and dev/test CLI runs are blocked until a provider adapter and approvals exist.
+
+## Candidates and blind review
+
+After legally obtaining and locally parsing SemEval XML, `scripts.prepare_semeval` and `scripts.build_questions` produce ignored candidate files and separate gold references. Then run:
+
+```powershell
+.\.venv\Scripts\python -m scripts.build_subsets --questions data/processed/candidate_questions.json --out data/processed/candidate_subsets.json
+```
+
+The script requires 20 complete six-type packs and preselects 20 repeat, 30 gold/ablation diagnostic and 30 evidence review question IDs across all packs. It uses no model outputs or gold answers. Every list remains `CANDIDATE_UNREVIEWED` pending two-person wording/reference review and formal freeze. The synthetic challenge pair is likewise only a dry-run candidate. Follow [annotation guide](annotation_guide.md).
+
+After reviewed main A/B/C runs exist, generate method-blinded packets:
+
+```powershell
+.\.venv\Scripts\python -m scripts.make_blind_review --runs outputs/runs/main-a outputs/runs/main-b outputs/runs/main-c --subsets data/processed/candidate_subsets.json --out outputs/blind_review
+```
+
+`review_items.csv` omits method; `private_mapping.csv` stores the key separately. Inspect answer prose for self-identifying method text before handing packets to reviewers. Both files may contain licensed review content and stay in ignored local output. The exporter writes no human judgments and refuses to overwrite a mapping. The annotation guide provides blank judgment headers for independent reviewers and adjudication.
+
+## Scoring and report data
+
+```powershell
+.\.venv\Scripts\python -m scripts.summarize_runs --runs outputs/runs/demo/main-a outputs/runs/demo/main-b outputs/runs/demo/main-c outputs/runs/demo/repeats-c outputs/runs/demo/gold-b outputs/runs/demo/gold-c outputs/runs/demo/ablation-c --references data/demo/core_reference.json --out outputs/runs/demo/report.json
+```
+
+The independent scorer stamps `MOCK_ONLY_NOT_RESEARCH_RESULT`, separates conditions, reports missing/failed rows and unknown costs, pairs question IDs and success differences, and summarizes repeat disagreement. It does not turn unknown cost into zero. Challenge has no score before human labels exist. Use the [blank report template](report_template.md) for reviewed real results only.
+
+## Budget and real-run approval
+
+The plan has 360 main + 120 repeat + 60 gold + 30 ablation = **570 method-level answers**. Conservative arithmetic is 2,270 query requests, up to 1,200 shared main extraction requests (600 records × 2 attempts), and up to 160 challenge extraction requests (80 records × 2 attempts), totaling **3,630** before pilot, conditioned sentiment or optional work. This assumes no cache savings and is not measured usage. `scripts.estimate_budget` requires an actual provider/model, price source/date, per-request token upper bounds and prices; its fixture test price is not a quote.
+
+Before a real pilot or formal run, verify licensed files and source hashes; duplicate audit; frozen question/reference/subset hashes and human sign-off; human challenge labels; exact provider/model/version/parameters and prompts; concurrency, timeout and retry policy; token bounds, current price source/date/currency, request and fee caps; data transfer/privacy rules; and explicit approval for the dev pilot or formal holdout. Add pilot and conditioned sentiment costs to the estimate. The current code intentionally blocks live execution.

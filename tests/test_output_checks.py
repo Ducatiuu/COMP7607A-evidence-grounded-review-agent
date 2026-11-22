@@ -71,3 +71,14 @@ def test_finalizer_does_not_report_zero_tokens_after_transport_failure():
     answer = Finalizer(client, "mock").finish(method="b", question="Service negative rate?", question_id="Q1", query=query, ctx=ctx, results=[result], trace=[])
     assert answer.status == "ok" and answer.usage["api_requests"] == 2
     assert answer.usage["input_tokens"] is None and answer.usage["output_tokens"] is None
+
+
+def test_ablation_disables_output_checks_and_repair_but_keeps_schema():
+    ctx, result, query = _rate_context()
+    client = MockLLMClient(deque([LLMResponse(content=_answer(0.5), model="mock")]))
+    answer = Finalizer(client, "mock", verify_outputs=False).finish(method="c", question="Service negative rate?", question_id="Q1", query=query, ctx=ctx, results=[result], trace=[])
+    assert answer.status == "ok" and answer.numeric_claims[0].value == 0.5
+    assert answer.usage["output_repairs"] == 0 and len(client.requests) == 1
+    invalid = MockLLMClient(deque([LLMResponse(content={"status": "ok", "answer_text": "bad", "numeric_claims": [{"metric": "x", "value": "many"}]}, model="mock")]))
+    failed = Finalizer(invalid, "mock", verify_outputs=False).finish(method="c", question="?", question_id="Q1", query=query, ctx=ctx, results=[result], trace=[])
+    assert failed.status == "failed" and len(invalid.requests) == 1

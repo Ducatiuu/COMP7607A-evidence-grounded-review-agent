@@ -23,6 +23,7 @@ class Finalizer:
     client: LLMClient
     provider_model: str
     prompt_version: str = "answer-v1"
+    verify_outputs: bool = True
 
     def finish(self, *, method: str, question: str, question_id: str | None, query: QuerySpec,
                ctx: AnalysisContext, results: list[ToolResult], trace: list[TraceEvent]) -> AnswerPayload:
@@ -30,7 +31,7 @@ class Finalizer:
         output_tokens: int | None = 0
         requests = 0
         errors: list[str] = []
-        for attempt in range(2):
+        for attempt in range(2 if self.verify_outputs else 1):
             requests += 1
             request = LLMRequest(
                 stage="answer" if attempt == 0 else "answer_repair",
@@ -56,7 +57,7 @@ class Finalizer:
                         "tool_trace": [event.model_dump(mode="json") for event in trace],
                         "usage": {"api_requests": requests, "input_tokens": input_tokens, "output_tokens": output_tokens, "output_repairs": attempt}}
                 answer = AnswerPayload.model_validate(data)
-                errors = check_answer(answer, ctx, query, results)
+                errors = check_answer(answer, ctx, query, results) if self.verify_outputs else []
                 if not errors:
                     return answer
             except Exception:
@@ -67,5 +68,5 @@ class Finalizer:
             method=method, question_id=question_id, status="failed", answer_text="",
             coverage=ctx.dataset.coverage, tool_trace=trace,
             error_code="answer_verification_failed",
-            usage={"api_requests": requests, "input_tokens": input_tokens, "output_tokens": output_tokens, "output_repairs": 1},
+            usage={"api_requests": requests, "input_tokens": input_tokens, "output_tokens": output_tokens, "output_repairs": max(0, requests - 1)},
         )

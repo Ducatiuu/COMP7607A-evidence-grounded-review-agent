@@ -34,7 +34,7 @@ Expected service result: 2 negative records / 3 records mentioning service = 2/3
 .\.venv\Scripts\python -m eval.run_method --method c --split demo --condition repeats --mock
 ```
 
-Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. Configuration and full task payload hashes block accidental mixing. The current runner supports only the synthetic demo for `main` and `repeats`; formal dev/test, gold substitution, ablation and challenge execution remain pending. See [data handling](docs/data_sources.md) for local licensed-file preparation.
+Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. Configuration and full task payload hashes block accidental mixing. The synthetic demo also exercises B/C `gold`, C `ablation`, and a separate extraction-only challenge. Formal dev/test and live provider runs remain pending. See [experiment preparation](docs/experiment_plan.md) and [data handling](docs/data_sources.md).
 
 ## Local Streamlit demo
 
@@ -44,4 +44,4 @@ Rows are append-only under ignored `outputs/runs/`; a matching rerun skips compl
 
 The server binds to `127.0.0.1`. Load the synthetic demo (or upload the unchanged `data/demo/core.csv`), run MOCK extraction, inspect aspect counts and evidence, ask the displayed question with A/B/C, then compare methods and traces. Browser refresh restores locally saved state through a random URL token; **Clear local workspace** removes that saved state. Uploads are capped at 1 MB for CSV and 5 MB for extraction JSON. A different CSV can be paired with a separately validated `ExtractionDataset` JSON for deterministic charts/evidence; the canned MOCK question is deliberately unavailable for it. No live API or formal result is shown.
 
-The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Raw data, gold labels, credentials, and local run outputs are ignored by Git.
+The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Licensed raw data, formal gold labels, credentials, and local run outputs are ignored by Git. Synthetic demo gold/reference fixtures are tracked as test data.
