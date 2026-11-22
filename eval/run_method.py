@@ -5,9 +5,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import uuid
+from pathlib import Path
 
 from src.data_loader import dataset_fingerprint, load_csv
 from src.demo_mock import DEMO_QUESTION, run_demo_method
+from src.llm_telemetry import RecordingLLMClient
 from src.semeval import GoldRecord
 from .conditions import gold_substitution_dataset
 from .runner import RunConfig, RunTask, run_tasks
@@ -35,8 +38,6 @@ def main(argv=None) -> int:
     extraction_dataset = None
     condition_artifact_sha256 = None
     if args.condition == "gold":
-        from pathlib import Path
-
         gold_path = Path("data/demo/core_gold.json")
         raw_gold = gold_path.read_bytes()
         condition_artifact_sha256 = hashlib.sha256(raw_gold).hexdigest()
@@ -54,12 +55,21 @@ def main(argv=None) -> int:
         estimated_requests_per_task={"a": 1, "b": 11, "c": 15}[args.method] if args.max_api_requests else None,
     )
 
+    output_dir = Path(args.out or f"outputs/runs/demo/{args.method}/{args.condition}")
+
     def execute(task: RunTask):
+        def instrument(client):
+            return RecordingLLMClient(delegate=client, output_path=output_dir / "model_calls.jsonl",
+                                      run_id=str(uuid.uuid4()), configured_model="mock", config_sha256=config.fingerprint,
+                                      method=args.method, question_id=task.question_id,
+                                      repeat_index=task.repeat_index, record_content=True)
+
         answer, _ = run_demo_method(records, method=args.method, question=task.question, question_id=task.question_id,
-                                    extraction_dataset=extraction_dataset, verify_outputs=args.condition != "ablation")
+                                    extraction_dataset=extraction_dataset, verify_outputs=args.condition != "ablation",
+                                    client_wrapper=instrument)
         return answer
 
-    summary = run_tasks(config, tasks, args.out or f"outputs/runs/demo/{args.method}/{args.condition}", execute, retry_failed=args.retry_failed)
+    summary = run_tasks(config, tasks, output_dir, execute, retry_failed=args.retry_failed)
     print(summary.model_dump_json(indent=2))
     return 0
 

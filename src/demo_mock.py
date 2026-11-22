@@ -6,11 +6,12 @@ from collections import deque
 import hashlib
 import json
 from pathlib import Path
+from typing import Callable
 
 from src.absa_service import ExtractionService
 from src.controllers import DirectLLM, DynamicAgent, FixedWorkflow, QueryParser
 from src.data_loader import dataset_fingerprint
-from src.llm_client import LLMResponse, MockLLMClient
+from src.llm_client import LLMClient, LLMResponse, MockLLMClient
 from src.schemas import AnswerPayload, ExtractionDataset, RecordSet
 from src.tools import AnalysisContext
 from src.verification import Finalizer
@@ -105,9 +106,12 @@ def mock_for_demo(records: RecordSet, *, method: str, question: str | None = Non
 
 def run_demo_method(records: RecordSet, *, method: str, question: str, question_id: str | None = None,
                     extraction_dataset: ExtractionDataset | None = None,
-                    verify_outputs: bool = True) -> tuple[AnswerPayload, int]:
+                    verify_outputs: bool = True,
+                    client_wrapper: Callable[[LLMClient], LLMClient] | None = None) -> tuple[AnswerPayload, int]:
     """Execute a genuine local control path with synthetic model responses."""
     client = mock_for_demo(records, method=method, question=question, include_extraction=extraction_dataset is None)
+    if client_wrapper is not None:
+        client = client_wrapper(client)
     if question_id is None:
         question_id = "demo-date" if question == DEMO_MISSING_DATE_QUESTION else "demo-rate"
     if method == "a":

@@ -109,7 +109,8 @@ class ExtractionService:
                 try:
                     response = self.client.complete_json(LLMRequest(
                         stage="extract", system_prompt=EXTRACTION_PROMPT,
-                        payload={"record_id": record.record_id, "text": record.text, "config": self.extraction_config},
+                        payload={"record_id": record.record_id, "text": record.text, "config": self.extraction_config,
+                                 "prompt_version": self.prompt_version, "schema_version": self.schema_version},
                         schema_name="ExtractionResult",
                     ))
                     if response.model != self.provider_model:

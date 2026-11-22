@@ -36,7 +36,7 @@ For the four-record example, service is 2 negative records (R01/R04) / 3 mention
 .\.venv\Scripts\python -m eval.run_method --method c --split demo --condition repeats --mock
 ```
 
-Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. Configuration and full task payload hashes block accidental mixing. The synthetic demo also exercises B/C `gold`, C `ablation`, and a separate extraction-only challenge. Formal dev/test and live provider runs remain pending. See [experiment preparation](docs/experiment_plan.md) and [data handling](docs/data_sources.md).
+Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. Configuration and full task payload hashes block accidental mixing. Each actual MOCK model request also appends a stage/timing/usage row to local `model_calls.jsonl`; unknown tokens and cost remain null. The synthetic demo also exercises B/C `gold`, C `ablation`, and a separate extraction-only challenge. Formal dev/test and live provider runs remain pending. See [experiment preparation](docs/experiment_plan.md) and [data handling](docs/data_sources.md).
 
 ## Local Streamlit demo
 

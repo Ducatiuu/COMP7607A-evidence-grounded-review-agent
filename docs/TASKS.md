@@ -48,6 +48,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P5-BOUNDARY-AUDIT | Verify 120 real candidate questions cover empty results, ties and undefined rates | P5-REALDATA, P5-HUMAN | Coverage counts and reviewed, frozen wording/reference manifest | BLOCKED: real packs/review | NOT AUTHORIZED |
 | P5-BOUNDARY-CODE | Implement candidate question/pack/metadata coverage gate | P5-QUESTIONS | Hashes, six types/pack, scope, overlap, boundary cases; gap exits 2 | PASS (synthetic) | NOT AUTHORIZED |
 | P5-SCALE-SMOKE | Run full-size synthetic XML through split/questions/subsets/audit | P5-SPLIT, P5-BOUNDARY-CODE | 3041/800 source, 150/600 sample, 20×30, 120, deterministic hashes | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-CALL-LOG | Append per-call MOCK stage/timing/token/prompt/output provenance | P5-RUNNER | Actual call count matches answer usage, failure rows, null unknowns, resume idempotence | PASS (synthetic) | NOT AUTHORIZED |
 | P6-DEMO-SCALE | Prepare 50–100 clearly simulated presentation records | P6-DEMO-ROUTE | 60 unique entries, five categories/four sentiments, exact spans, UI A/B/C MOCK path | PASS (synthetic) | NOT AUTHORIZED |
 | P6-GENUINE-DEMO | Save genuine baseline/proposed run and rehearse final presentation | P6-DEMO-SCALE, provider approval | Real saved output, truthful labels, four-minute human rehearsal | BLOCKED: provider/human work | NOT AUTHORIZED |
 
