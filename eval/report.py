@@ -30,14 +30,17 @@ def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) 
                                                    for ref_id in by_reference for index in range(3)}):
             raise ValueError("run has a question without a gold reference")
         latest: dict[str, RunRow] = {}
+        attempts: list[RunRow] = []
         for line in (directory / "answers.jsonl").read_text(encoding="utf-8").splitlines():
             row = RunRow.model_validate_json(line)
             if (row.config_sha256 != manifest.config_sha256 or row.key not in manifest.task_keys
                     or row.method != key[1] or row.condition != key[0]):
                 raise ValueError("row does not match manifest")
-            if row.key in latest and row.attempt_index != latest[row.key].attempt_index + 1:
+            expected_attempt = latest[row.key].attempt_index + 1 if row.key in latest else 1
+            if row.attempt_index != expected_attempt:
                 raise ValueError("nonconsecutive attempts")
             latest[row.key] = row
+            attempts.append(row)
         scores = [score_answer(row.answer, by_reference[row.question_id]) for row in latest.values()]
         success_by_key = {row.key: bool(score_answer(row.answer, by_reference[row.question_id])["primary_success"])
                           for row in latest.values()}
@@ -45,9 +48,11 @@ def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) 
             "condition": key[0], "method": key[1], "expected": len(manifest.task_keys),
             "recorded": len(latest), "missing": len(manifest.task_keys) - len(latest),
             "failed": sum(row.status in {"failed", "partial"} for row in latest.values()),
-            "api_requests_known": sum(row.api_requests or 0 for row in latest.values() if row.api_requests is not None),
-            "api_requests_unknown_rows": sum(row.api_requests is None for row in latest.values()),
-            "cost_usd": None if not latest or any(row.cost_usd is None for row in latest.values()) else sum(row.cost_usd for row in latest.values()),
+            "attempt_rows": len(attempts),
+            "failed_or_partial_attempt_rows": sum(row.status in {"failed", "partial"} for row in attempts),
+            "api_requests_known": sum(row.api_requests for row in attempts if row.api_requests is not None),
+            "api_requests_unknown_rows": sum(row.api_requests is None for row in attempts),
+            "cost_usd": None if not attempts or any(row.cost_usd is None for row in attempts) else sum(row.cost_usd for row in attempts),
             "scores": summarize_question_scores(scores),
             "rows": latest,
             "success_by_key": success_by_key,

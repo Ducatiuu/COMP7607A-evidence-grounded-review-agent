@@ -50,7 +50,7 @@ After reviewed main A/B/C runs exist, generate method-blinded packets:
 .\.venv\Scripts\python -m scripts.summarize_runs --runs outputs/runs/demo/main-a outputs/runs/demo/main-b outputs/runs/demo/main-c outputs/runs/demo/repeats-c outputs/runs/demo/gold-b outputs/runs/demo/gold-c outputs/runs/demo/ablation-c --references data/demo/core_reference.json --out outputs/runs/demo/report.json
 ```
 
-The independent scorer stamps `MOCK_ONLY_NOT_RESEARCH_RESULT`, separates conditions, reports missing/failed rows and unknown costs, pairs question IDs and success differences, and summarizes repeat disagreement. It does not turn unknown cost into zero. Challenge has no score before human labels exist. Use the [blank report template](report_template.md) for reviewed real results only.
+The independent scorer stamps `MOCK_ONLY_NOT_RESEARCH_RESULT`, separates conditions, reports missing/failed final rows and unknown costs, pairs question IDs and success differences, and summarizes repeat disagreement. Scoring uses each task's latest attempt. `attempt_rows`, `failed_or_partial_attempt_rows`, `api_requests_known`, `api_requests_unknown_rows` and `cost_usd` cover every retained attempt, including failed attempts followed by explicit retries; unknown cost remains null. Challenge has no score before human labels exist. Use the [blank report template](report_template.md) for reviewed real results only.
 
 ## Budget and real-run approval
 
