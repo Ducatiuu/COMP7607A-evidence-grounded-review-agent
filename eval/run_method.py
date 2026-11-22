@@ -14,6 +14,7 @@ from src.llm_telemetry import RecordingLLMClient
 from src.semeval import GoldRecord
 from .conditions import gold_substitution_dataset
 from .runner import RunConfig, RunTask, run_tasks
+from .shared_extraction import load_shared_extraction
 
 
 def main(argv=None) -> int:
@@ -25,6 +26,7 @@ def main(argv=None) -> int:
     parser.add_argument("--out")
     parser.add_argument("--retry-failed", action="store_true")
     parser.add_argument("--max-api-requests", type=int)
+    parser.add_argument("--shared-extraction", help="verified MOCK extraction artifact directory for B/C")
     args = parser.parse_args(argv)
     if args.split != "demo":
         parser.error("only synthetic demo is configured; licensed dev/test files and live model are not available")
@@ -34,9 +36,13 @@ def main(argv=None) -> int:
         parser.error("gold substitution is defined for Methods B and C only")
     if args.condition == "ablation" and args.method != "c":
         parser.error("verification ablation is defined for Method C only")
+    if args.shared_extraction and (args.method == "a" or args.condition == "gold"):
+        parser.error("shared predicted extraction is defined only for B/C non-gold runs")
     records = load_csv("data/demo/core.csv")
     extraction_dataset = None
     condition_artifact_sha256 = None
+    if args.shared_extraction:
+        extraction_dataset, condition_artifact_sha256, _ = load_shared_extraction(records, args.shared_extraction)
     if args.condition == "gold":
         gold_path = Path("data/demo/core_gold.json")
         raw_gold = gold_path.read_bytes()
