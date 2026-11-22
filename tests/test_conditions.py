@@ -25,6 +25,8 @@ def test_gold_substitution_has_full_sentence_only_and_explicit_origin():
     assert artifact.extractions[0].aspects[0].evidence == [records.records[0].text]
     answer, extraction_requests = run_demo_method(records, method="b", question=DEMO_QUESTION, extraction_dataset=artifact)
     assert answer.status == "ok" and extraction_requests == 0 and answer.numeric_claims[0].value == 2 / 3
+    assert answer.usage["query_wall_latency_ms"] >= 0
+    assert "extraction_wall_latency_ms" not in answer.usage
     with pytest.raises(ValueError, match="IDs must match"):
         gold_substitution_dataset(records, gold[:-1], source_sha256="a" * 64)
 

@@ -31,7 +31,16 @@ def test_report_scores_actual_mock_rows_and_pairs_methods(tmp_path):
                                                   "primary_success_disagreement_count": 0, "incomplete_question_pairs": 0}
     assert all(item["scores"]["equal_type_average"] == 1 for item in report["runs"])
     assert all(item["cost_usd"] is None for item in report["runs"])
+    assert all(item["warm_query_wall_latency_ms"]["count"] == item["recorded"] for item in report["runs"])
+    assert all(item["warm_query_latency_missing_attempts"] == 0 for item in report["runs"])
+    assert all(item["attempt_wall_latency_ms"]["count"] == item["attempt_rows"] for item in report["runs"])
     main_b = next(item for item in report["runs"] if item["condition"] == "main" and item["method"] == "b")
+    main_a = next(item for item in report["runs"] if item["condition"] == "main" and item["method"] == "a")
+    assert 0 <= main_b["warm_query_wall_latency_ms"]["median_ms"] <= main_b["attempt_wall_latency_ms"]["median_ms"]
+    assert main_b["extraction_wall_latency_ms"]["count"] == 1
+    assert main_a["extraction_wall_latency_ms"]["count"] == 0
+    assert (main_b["extraction_wall_latency_ms"]["median_ms"] + main_b["warm_query_wall_latency_ms"]["median_ms"]
+            <= main_b["attempt_wall_latency_ms"]["median_ms"])
     efficiency = main_b["model_call_efficiency"]
     assert (efficiency["call_rows"], efficiency["extraction_requests"], efficiency["query_requests"],
             efficiency["request_count_agrees"], efficiency["cost_usd"]) == (6, 4, 2, True, None)
@@ -76,22 +85,36 @@ def test_report_scores_latest_attempt_but_accounts_for_every_retry(tmp_path):
     assert report["api_requests_unknown_rows"] == 0
     assert report["cost_usd"] is None
     assert report["model_call_efficiency"] == {"available": False, "reason": "model_calls.jsonl absent"}
+    assert report["warm_query_wall_latency_ms"]["count"] == 0
+    assert report["warm_query_latency_missing_attempts"] == 2
 
     rows_path = tmp_path / "answers.jsonl"
     rows = [json.loads(line) for line in rows_path.read_text(encoding="utf-8").splitlines()]
     rows[0]["cost_usd"], rows[1]["cost_usd"] = 0.25, 0.75
+    rows[0]["answer"]["usage"]["query_wall_latency_ms"] = 4.0
+    rows[1]["answer"]["usage"]["query_wall_latency_ms"] = 6.0
     rows_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
-    assert summarize_runs([tmp_path], references)["runs"][0]["cost_usd"] == 1.0
+    report = summarize_runs([tmp_path], references)["runs"][0]
+    assert report["cost_usd"] == 1.0
+    assert report["warm_query_wall_latency_ms"] == {"count": 2, "median_ms": 5.0, "p95_ms": 6.0}
 
     rows[0]["api_requests"], rows[0]["answer"]["usage"] = None, {}
     rows[0]["cost_usd"] = None
     rows_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     report = summarize_runs([tmp_path], references)["runs"][0]
     assert (report["api_requests_known"], report["api_requests_unknown_rows"], report["cost_usd"]) == (3, 1, None)
+    assert report["warm_query_wall_latency_ms"]["count"] == 1
+    assert report["warm_query_latency_missing_attempts"] == 1
 
     rows[0]["attempt_index"] = 2
     rows_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     with pytest.raises(ValueError, match="nonconsecutive attempts"):
+        summarize_runs([tmp_path], references)
+
+    rows[0]["attempt_index"] = 1
+    rows[0]["answer"]["usage"]["query_wall_latency_ms"] = -1
+    rows_path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    with pytest.raises(ValueError, match="invalid query_wall_latency_ms"):
         summarize_runs([tmp_path], references)
 
 

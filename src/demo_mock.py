@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 import hashlib
 import json
+import time
 from pathlib import Path
 from typing import Callable
 
@@ -115,9 +116,14 @@ def run_demo_method(records: RecordSet, *, method: str, question: str, question_
     if question_id is None:
         question_id = "demo-date" if question == DEMO_MISSING_DATE_QUESTION else "demo-rate"
     if method == "a":
-        return DirectLLM(client, "mock").run(records=records, question=question, question_id=question_id), 0
+        query_started = time.perf_counter()
+        answer = DirectLLM(client, "mock").run(records=records, question=question, question_id=question_id)
+        usage = {**answer.usage, "query_wall_latency_ms": (time.perf_counter() - query_started) * 1000}
+        return answer.model_copy(update={"usage": usage}), 0
     if extraction_dataset is None:
+        extraction_started = time.perf_counter()
         extraction = ExtractionService(client, provider_model="mock").extract(records)
+        extraction_wall_latency_ms = (time.perf_counter() - extraction_started) * 1000
         dataset = extraction.dataset
         extraction_requests = extraction.requests
     else:
@@ -125,6 +131,8 @@ def run_demo_method(records: RecordSet, *, method: str, question: str, question_
             raise ValueError("supplied extraction does not match demo records")
         dataset = extraction_dataset
         extraction_requests = 0
+        extraction_wall_latency_ms = None
+    query_started = time.perf_counter()
     ctx = AnalysisContext(dataset)
     if method == "b":
         answer = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock", verify_outputs=verify_outputs)).run(ctx=ctx, question=question, question_id=question_id)
@@ -133,5 +141,8 @@ def run_demo_method(records: RecordSet, *, method: str, question: str, question_
     else:
         raise ValueError("unsupported demo method")
     usage = {**answer.usage, "extraction_requests": extraction_requests,
-             "api_requests": (answer.usage.get("api_requests") or 0) + extraction_requests}
+             "api_requests": (answer.usage.get("api_requests") or 0) + extraction_requests,
+             "query_wall_latency_ms": (time.perf_counter() - query_started) * 1000}
+    if extraction_wall_latency_ms is not None:
+        usage["extraction_wall_latency_ms"] = extraction_wall_latency_ms
     return answer.model_copy(update={"usage": usage}), extraction_requests

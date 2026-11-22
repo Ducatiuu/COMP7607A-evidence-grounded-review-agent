@@ -5,12 +5,22 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from itertools import combinations
+from math import isfinite
 from pathlib import Path
 
-from .efficiency import summarize_model_calls
+from .efficiency import latency_stats, summarize_model_calls
 from .metrics import score_answer, summarize_question_scores
 from .questions import GoldReference
 from .runner import RunManifest, RunRow
+
+
+def _host_wall_latency(row: RunRow, key: str) -> float | None:
+    value = row.answer.usage.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value) or value < 0:
+        raise ValueError(f"invalid {key} in answer usage")
+    return float(value)
 
 
 def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) -> dict:
@@ -47,6 +57,8 @@ def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) 
                           for row in latest.values()}
         api_requests_known = sum(row.api_requests for row in attempts if row.api_requests is not None)
         api_requests_unknown_rows = sum(row.api_requests is None for row in attempts)
+        query_wall_times = [_host_wall_latency(row, "query_wall_latency_ms") for row in attempts]
+        extraction_wall_times = [_host_wall_latency(row, "extraction_wall_latency_ms") for row in attempts]
         groups[key] = {
             "condition": key[0], "method": key[1], "expected": len(manifest.task_keys),
             "recorded": len(latest), "missing": len(manifest.task_keys) - len(latest),
@@ -56,6 +68,10 @@ def summarize_runs(run_dirs: list[str | Path], references: list[GoldReference]) 
             "api_requests_known": api_requests_known,
             "api_requests_unknown_rows": api_requests_unknown_rows,
             "cost_usd": None if not attempts or any(row.cost_usd is None for row in attempts) else sum(row.cost_usd for row in attempts),
+            "attempt_wall_latency_ms": latency_stats([row.latency_ms for row in attempts]),
+            "warm_query_wall_latency_ms": latency_stats([value for value in query_wall_times if value is not None]),
+            "warm_query_latency_missing_attempts": sum(value is None for value in query_wall_times),
+            "extraction_wall_latency_ms": latency_stats([value for value in extraction_wall_times if value is not None]),
             "model_call_efficiency": summarize_model_calls(
                 directory / "model_calls.jsonl", config_sha256=manifest.config_sha256, method=key[1],
                 task_keys=set(manifest.task_keys), answer_api_requests_known=api_requests_known,

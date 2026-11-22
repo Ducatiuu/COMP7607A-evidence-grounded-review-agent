@@ -55,7 +55,7 @@ class ModelCallRow(StrictModel):
         return self
 
 
-def _latency_stats(values: list[float]) -> dict:
+def latency_stats(values: list[float]) -> dict:
     if not values:
         return {"count": 0, "median_ms": None, "p95_ms": None}
     ordered = sorted(values)
@@ -95,7 +95,7 @@ def summarize_model_calls(path: str | Path, *, config_sha256: str, method: str, 
     for stage in sorted({row.stage for row in rows}):
         selected = [row for row in rows if row.stage == stage]
         stages[stage] = {"requests": len(selected), "failed_requests": sum(row.status == "failed" for row in selected),
-                         "call_latency_ms": _latency_stats([row.latency_ms for row in selected])}
+                         "call_latency_ms": latency_stats([row.latency_ms for row in selected])}
     extraction = [row for row in rows if row.stage == "extract"]
     query = [row for row in rows if row.stage != "extract"]
     query_by_run: dict[str, float] = defaultdict(float)
@@ -105,9 +105,9 @@ def summarize_model_calls(path: str | Path, *, config_sha256: str, method: str, 
     return {
         "available": True, "call_rows": len(rows), "failed_call_rows": sum(row.status == "failed" for row in rows),
         "extraction_requests": len(extraction), "query_requests": len(query), "stages": stages,
-        "extraction_call_latency_ms": _latency_stats([row.latency_ms for row in extraction]),
-        "query_call_latency_ms": _latency_stats([row.latency_ms for row in query]),
-        "query_model_latency_per_attempt_ms": _latency_stats(list(query_by_run.values())),
+        "extraction_call_latency_ms": latency_stats([row.latency_ms for row in extraction]),
+        "query_call_latency_ms": latency_stats([row.latency_ms for row in query]),
+        "query_model_latency_per_attempt_ms": latency_stats(list(query_by_run.values())),
         "input_tokens_known": sum(row.input_tokens for row in rows if row.input_tokens is not None),
         "input_tokens_unknown_calls": sum(row.input_tokens is None for row in rows),
         "output_tokens_known": sum(row.output_tokens for row in rows if row.output_tokens is not None),
