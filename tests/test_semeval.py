@@ -78,6 +78,26 @@ def test_xml_rejects_unsafe_and_inconsistent_content(tmp_path):
         parse_restaurant_xml(path, source_split="train", source_url="synthetic://bad")
 
 
+def test_xml_collapses_identical_source_annotations_and_audits_ids(tmp_path):
+    path = tmp_path / "duplicate.xml"
+    path.write_text('<sentences><sentence id="a"><text>food</text><aspectCategories>'
+                    '<aspectCategory category="food" polarity="positive"/>'
+                    '<aspectCategory category="food" polarity="positive"/>'
+                    '</aspectCategories></sentence></sentences>', encoding="utf-8")
+    corpus = parse_restaurant_xml(path, source_split="train", source_url="synthetic://duplicate")
+    assert len(corpus.gold[0].aspects) == 1
+    assert corpus.duplicate_exact_annotation_ids == ["a"]
+
+
+def test_phase_b_input_without_polarities_is_not_gold(tmp_path):
+    path = tmp_path / "phase_b.xml"
+    path.write_text('<sentences><sentence id="a"><text>food</text><aspectCategories>'
+                    '<aspectCategory category="food"/>'
+                    '</aspectCategories></sentence></sentences>', encoding="utf-8")
+    with pytest.raises(ValueError, match="Phase B input is not Gold test data"):
+        parse_restaurant_xml(path, source_split="test", source_url="synthetic://phase-b")
+
+
 def test_prepare_script_outputs_run_csv_and_separate_gold(tmp_path):
     train_path, test_path, _, _ = _corpora(tmp_path)
     out, gold = tmp_path / "processed", tmp_path / "gold"

@@ -39,6 +39,7 @@ class SemEvalCorpus(StrictModel):
     file_sha256: str = Field(min_length=64, max_length=64)
     records: list[Record]
     gold: list[GoldRecord]
+    duplicate_exact_annotation_ids: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def aligned(self) -> "SemEvalCorpus":
@@ -66,6 +67,8 @@ class CandidateSplit(StrictModel):
     packs: list[list[str]]
     train_duplicate_groups: list[DuplicateGroup]
     test_duplicate_groups: list[DuplicateGroup]
+    train_duplicate_exact_annotation_ids: list[str] = Field(default_factory=list)
+    test_duplicate_exact_annotation_ids: list[str] = Field(default_factory=list)
     cross_split_train_ids: list[str]
     conflict_excluded_train_ids: list[str]
     conflict_excluded_test_ids: list[str]
@@ -92,6 +95,7 @@ def parse_restaurant_xml(path: str | Path, *, source_split: Literal["train", "te
         raise ValueError("expected <sentences> root")
     records: list[Record] = []
     gold: list[GoldRecord] = []
+    duplicate_exact_annotation_ids: list[str] = []
     for sentence in root.findall("sentence"):
         record_id = sentence.get("id")
         text = sentence.findtext("text")
@@ -99,22 +103,35 @@ def parse_restaurant_xml(path: str | Path, *, source_split: Literal["train", "te
             raise ValueError("sentence missing id or text")
         record = Record(record_id=record_id, text=text)
         annotations = []
+        seen_categories: dict[Category, Sentiment] = {}
         container = sentence.find("aspectCategories")
         if container is not None:
             for aspect in container.findall("aspectCategory"):
                 category = aspect.get("category")
                 polarity = aspect.get("polarity")
-                if category is None or polarity is None:
-                    raise ValueError(f"missing aspect category or polarity for {record_id}")
-                annotations.append(GoldAnnotation(category=category.lower(), sentiment=polarity.lower()))
+                if category is None:
+                    raise ValueError(f"missing aspect category for {record_id}")
+                if polarity is None:
+                    raise ValueError(f"missing aspect polarity for {record_id}; Phase B input is not Gold test data")
+                annotation = GoldAnnotation(category=category.lower(), sentiment=polarity.lower())
+                previous = seen_categories.get(annotation.category)
+                if previous is not None:
+                    if previous != annotation.sentiment:
+                        raise ValueError(f"duplicate gold category with conflicting polarity for {record_id}")
+                    if record_id not in duplicate_exact_annotation_ids:
+                        duplicate_exact_annotation_ids.append(record_id)
+                    continue
+                seen_categories[annotation.category] = annotation.sentiment
+                annotations.append(annotation)
         records.append(record)
         gold.append(GoldRecord(record_id=record_id, aspects=annotations))
     if not records:
         raise ValueError("no sentences found")
     if not any(item.aspects for item in gold):
-        raise ValueError("no category-polarity gold labels found; Phase B XML required")
+        raise ValueError("no category-polarity gold labels found; Gold XML required")
     return SemEvalCorpus(source_split=source_split, source_url=source_url,
-                         file_sha256=hashlib.sha256(raw).hexdigest(), records=records, gold=gold)
+                         file_sha256=hashlib.sha256(raw).hexdigest(), records=records, gold=gold,
+                         duplicate_exact_annotation_ids=duplicate_exact_annotation_ids)
 
 
 def normalized_dedup_key(text: str) -> str:
@@ -178,6 +195,8 @@ def prepare_candidate_split(train: SemEvalCorpus, test: SemEvalCorpus, *, seed: 
         "dev_ids": dev_ids, "test_ids": test_ids, "packs": packs,
         "train_duplicate_groups": [group.model_dump(mode="json") for group in train_duplicates],
         "test_duplicate_groups": [group.model_dump(mode="json") for group in test_duplicates],
+        "train_duplicate_exact_annotation_ids": train.duplicate_exact_annotation_ids,
+        "test_duplicate_exact_annotation_ids": test.duplicate_exact_annotation_ids,
         "cross_split_train_ids": overlap,
         "conflict_excluded_train_ids": sorted(train_conflicts),
         "conflict_excluded_test_ids": sorted(test_conflicts),
