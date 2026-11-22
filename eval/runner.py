@@ -7,6 +7,8 @@ import json
 import os
 import time
 from datetime import datetime, timezone
+from decimal import Decimal
+from math import isfinite
 from pathlib import Path
 from typing import Callable, Literal
 
@@ -14,6 +16,15 @@ from pydantic import Field, model_validator
 
 from src.schemas import AnswerPayload
 from src.schemas.models import StrictModel
+
+
+def _valid_cost(value: object) -> bool:
+    if type(value) not in (int, float) or value < 0:
+        return False
+    try:
+        return isfinite(value)
+    except OverflowError:
+        return False
 
 
 class RunTask(StrictModel):
@@ -39,8 +50,8 @@ class RunConfig(StrictModel):
     mock: bool = True
     max_api_requests: int | None = Field(default=None, ge=1)
     estimated_requests_per_task: int | None = Field(default=None, ge=1)
-    max_cost_usd: float | None = Field(default=None, gt=0)
-    estimated_cost_per_task_usd: float | None = Field(default=None, gt=0)
+    max_cost_usd: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    estimated_cost_per_task_usd: float | None = Field(default=None, gt=0, allow_inf_nan=False)
 
     @model_validator(mode="after")
     def safe_mode_and_budget(self) -> "RunConfig":
@@ -74,7 +85,7 @@ class RunRow(StrictModel):
     latency_ms: float = Field(ge=0)
     status: Literal["ok", "partial", "insufficient_info", "clarification", "failed"]
     api_requests: int | None = Field(default=None, ge=0)
-    cost_usd: float | None = None
+    cost_usd: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     answer: AnswerPayload
 
     @model_validator(mode="after")
@@ -87,6 +98,11 @@ class RunRow(StrictModel):
         valid_usage = type(usage_requests) is int and usage_requests >= 0
         if (valid_usage and self.api_requests != usage_requests) or (not valid_usage and self.api_requests is not None):
             raise ValueError("run row request usage is inconsistent")
+        usage_cost = self.answer.usage.get("cost_usd")
+        if "cost_usd" in self.answer.usage:
+            valid_cost = _valid_cost(usage_cost)
+            if (valid_cost and self.cost_usd != float(usage_cost)) or (not valid_cost and self.cost_usd is not None):
+                raise ValueError("run row cost usage is inconsistent")
         return self
 
 
@@ -159,8 +175,14 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
     if config.max_api_requests is not None and any(
             row.api_requests > config.estimated_requests_per_task for attempts in existing.values() for row in attempts):
         raise ValueError("cannot safely resume request cap after per-task estimate was exceeded")
+    if config.max_cost_usd is not None and any(row.cost_usd is None for attempts in existing.values() for row in attempts):
+        raise ValueError("cannot safely resume cost cap with unknown prior cost")
+    if config.max_cost_usd is not None and any(
+            row.cost_usd > config.estimated_cost_per_task_usd for attempts in existing.values() for row in attempts):
+        raise ValueError("cannot safely resume cost cap after per-task estimate was exceeded")
     requests_spent = sum(row.api_requests for attempts in existing.values() for row in attempts if row.api_requests is not None)
-    attempts_spent = sum(len(attempts) for attempts in existing.values())
+    cost_spent = sum((Decimal(str(row.cost_usd)) for attempts in existing.values() for row in attempts
+                      if row.cost_usd is not None), Decimal("0"))
     recorded = skipped_existing = retained_failures = pending = 0
     budget_stopped = False
 
@@ -180,7 +202,8 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
             budget_stopped = True
             pending += sum(1 for rest in tasks[index:] if needs_attempt(rest))
             break
-        if config.max_cost_usd is not None and (attempts_spent + 1) * config.estimated_cost_per_task_usd > config.max_cost_usd:
+        if (config.max_cost_usd is not None
+                and cost_spent + Decimal(str(config.estimated_cost_per_task_usd)) > Decimal(str(config.max_cost_usd))):
             budget_stopped = True
             pending += sum(1 for rest in tasks[index:] if needs_attempt(rest))
             break
@@ -194,12 +217,14 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
         api_requests = answer.usage.get("api_requests")
         if type(api_requests) is not int or api_requests < 0:
             api_requests = None
+        raw_cost = answer.usage.get("cost_usd")
+        cost_usd = float(raw_cost) if _valid_cost(raw_cost) else None
         row = RunRow(
             key=task.key, question_id=task.question_id, pack_id=task.pack_id,
             repeat_index=task.repeat_index, method=config.method, condition=config.condition,
             config_sha256=config.fingerprint, attempt_index=len(attempts) + 1,
             timestamp_utc=datetime.now(timezone.utc).isoformat(), latency_ms=(time.perf_counter() - started) * 1000,
-            status=answer.status, api_requests=api_requests, answer=answer,
+            status=answer.status, api_requests=api_requests, cost_usd=cost_usd, answer=answer,
         )
         with rows_path.open("a", encoding="utf-8", newline="\n") as stream:
             stream.write(row.model_dump_json() + "\n")
@@ -207,10 +232,13 @@ def run_tasks(config: RunConfig, tasks: list[RunTask], output_dir: str | Path,
             os.fsync(stream.fileno())
         existing.setdefault(task.key, []).append(row)
         recorded += 1
-        attempts_spent += 1
         if api_requests is not None:
             requests_spent += api_requests
-        if config.max_api_requests is not None and (api_requests is None or api_requests > config.estimated_requests_per_task):
+        if cost_usd is not None:
+            cost_spent += Decimal(str(cost_usd))
+        unsafe_requests = config.max_api_requests is not None and (api_requests is None or api_requests > config.estimated_requests_per_task)
+        unsafe_cost = config.max_cost_usd is not None and (cost_usd is None or cost_usd > config.estimated_cost_per_task_usd)
+        if unsafe_requests or unsafe_cost:
             budget_stopped = True
             pending = int(needs_attempt(task)) + sum(1 for rest in tasks[index + 1:] if needs_attempt(rest))
             break

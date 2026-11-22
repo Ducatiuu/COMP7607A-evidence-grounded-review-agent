@@ -17,9 +17,12 @@ def _tasks():
     return [RunTask(question_id="Q1", pack_id="P1", question="first"), RunTask(question_id="Q2", pack_id="P1", question="second")]
 
 
-def _answer(task, status="ok", requests=2):
+def _answer(task, status="ok", requests=2, cost=None):
+    usage = {"api_requests": requests}
+    if cost is not None:
+        usage["cost_usd"] = cost
     return AnswerPayload(method="b", question_id=task.question_id, status=status, answer_text="answer" if status == "ok" else "",
-                         error_code="fixture_error" if status == "failed" else None, usage={"api_requests": requests})
+                         error_code="fixture_error" if status == "failed" else None, usage=usage)
 
 
 def test_resume_keeps_failures_and_explicit_retry_appends_attempt(tmp_path):
@@ -105,6 +108,75 @@ def test_request_stop_counts_pending_explicit_retry(tmp_path):
     assert (summary.recorded, summary.pending, summary.budget_stopped) == (1, 1, True)
 
 
+def test_cost_cap_preflight_uses_known_cumulative_fee(tmp_path):
+    config = _config(max_cost_usd=0.5, estimated_cost_per_task_usd=0.3)
+    calls = []
+
+    def execute(task):
+        calls.append(task.question_id)
+        return _answer(task, cost=0.1)
+
+    summary = run_tasks(config, _tasks(), tmp_path, execute)
+    assert (summary.recorded, summary.pending, summary.budget_stopped) == (2, 0, False)
+    assert calls == ["Q1", "Q2"]
+    rows = [json.loads(line) for line in (tmp_path / "answers.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [row["cost_usd"] for row in rows] == [0.1, 0.1]
+    blocked = run_tasks(config, _tasks(), tmp_path / "blocked", lambda task: _answer(task, cost=0.3))
+    assert (blocked.recorded, blocked.pending, blocked.budget_stopped) == (1, 1, True)
+
+
+def test_cost_cap_decimal_boundary_is_not_lost_to_float_rounding(tmp_path):
+    config = _config(max_cost_usd=0.3, estimated_cost_per_task_usd=0.2)
+    summary = run_tasks(config, _tasks(), tmp_path, lambda task: _answer(task, cost=0.1))
+    assert (summary.recorded, summary.pending, summary.budget_stopped) == (2, 0, False)
+
+
+@pytest.mark.parametrize("cost", [None, 0.5, True, -0.1])
+def test_cost_cap_stops_after_unknown_or_over_bound_fee(tmp_path, cost):
+    config = _config(max_cost_usd=1.0, estimated_cost_per_task_usd=0.4)
+    calls = []
+
+    def execute(task):
+        calls.append(task.question_id)
+        return _answer(task, cost=cost)
+
+    summary = run_tasks(config, _tasks(), tmp_path, execute)
+    assert (summary.recorded, summary.pending, summary.budget_stopped) == (1, 1, True)
+    assert calls == ["Q1"]
+    row = json.loads((tmp_path / "answers.jsonl").read_text(encoding="utf-8"))
+    assert row["cost_usd"] == (0.5 if cost == 0.5 else None)
+    message = "per-task estimate was exceeded" if cost == 0.5 else "unknown prior cost"
+    with pytest.raises(ValueError, match=message):
+        run_tasks(config, _tasks(), tmp_path, execute)
+    if cost is True:
+        row["cost_usd"] = 1.0
+        (tmp_path / "answers.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+        with pytest.raises(ValueError, match="invalid JSONL row"):
+            run_tasks(config, _tasks(), tmp_path, execute)
+
+
+def test_cost_stop_counts_pending_explicit_retry(tmp_path):
+    config = _config(max_cost_usd=1.0, estimated_cost_per_task_usd=0.4)
+    summary = run_tasks(config, _tasks()[:1], tmp_path, lambda task: _answer(task, "failed"), retry_failed=True)
+    assert (summary.recorded, summary.pending, summary.budget_stopped) == (1, 1, True)
+
+
+def test_cost_cap_counts_failed_attempt_before_explicit_retry(tmp_path):
+    config = _config(max_cost_usd=0.5, estimated_cost_per_task_usd=0.3)
+    calls = 0
+
+    def execute(task):
+        nonlocal calls
+        calls += 1
+        return _answer(task, "failed" if calls == 1 else "ok", cost=0.2)
+
+    first = run_tasks(config, _tasks()[:1], tmp_path, execute)
+    second = run_tasks(config, _tasks()[:1], tmp_path, execute, retry_failed=True)
+    assert first.recorded == second.recorded == 1 and calls == 2
+    rows = [json.loads(line) for line in (tmp_path / "answers.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert [(row["status"], row["cost_usd"]) for row in rows] == [("failed", 0.2), ("ok", 0.2)]
+
+
 def test_failed_execution_is_row_and_unknown_usage_blocks_budgeted_resume(tmp_path):
     config = _config(max_api_requests=3, estimated_requests_per_task=1)
 
@@ -124,6 +196,8 @@ def test_live_mode_and_gold_fields_are_rejected():
         _config(mock=False)
     with pytest.raises(ValidationError):
         RunTask(question_id="Q1", pack_id="P1", question="?", gold_answer=2)
+    with pytest.raises(ValidationError):
+        _config(max_cost_usd=float("inf"), estimated_cost_per_task_usd=0.1)
 
 
 def test_insufficient_info_is_terminal_and_tampered_row_is_rejected(tmp_path):
