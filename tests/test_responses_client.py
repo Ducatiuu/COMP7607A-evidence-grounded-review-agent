@@ -132,6 +132,7 @@ def test_deepseek_uses_its_endpoint_and_key_without_unsupported_parameters(monke
     body, key, endpoint = calls[0]
     assert endpoint == "https://api.deepseek.com/responses" and key == "deepseek-test-key"
     assert "store" not in body and "truncation" not in body
+    assert body["reasoning"] == {"effort": "none"}
 
 
 def test_responses_client_feeds_actual_extraction_contract(monkeypatch):

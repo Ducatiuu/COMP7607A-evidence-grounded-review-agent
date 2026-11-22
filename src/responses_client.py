@@ -129,6 +129,10 @@ class ResponsesClient:
         }
         if self.provider == "openai":
             body.update({"truncation": "disabled", "store": False})
+        else:
+            # DeepSeek Responses defaults to high-effort thinking. Keep bounded
+            # JSON extraction and question answering in its non-thinking mode.
+            body["reasoning"] = {"effort": "none"}
         started = time.perf_counter()
         response = self.post_json(body, api_key, self.timeout_seconds, endpoint)
         if response.get("model") != self.model:
