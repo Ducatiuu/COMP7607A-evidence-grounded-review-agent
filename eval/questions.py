@@ -19,6 +19,7 @@ class QuestionCandidate(StrictModel):
     wording: str
     expected_fields: list[str]
     denominator_spec: Literal["aspect_mentions", "all_records"] | None = None
+    metadata_required: Literal["date", "rating", "customer_id"] | None = None
     status: Literal["CANDIDATE_UNREVIEWED"] = "CANDIDATE_UNREVIEWED"
 
 
@@ -56,12 +57,15 @@ def build_candidate_questions(split: CandidateSplit) -> list[QuestionCandidate]:
     questions = []
     for pack_number, ids in enumerate(split.packs, start=1):
         pack_id = f"P{pack_number:02d}"
-        templates = [*_TEMPLATES, ("insufficient_info", _MISSING_METADATA_TEMPLATES[(pack_number - 1) % 3],
+        metadata_index = (pack_number - 1) % 3
+        templates = [*_TEMPLATES, ("insufficient_info", _MISSING_METADATA_TEMPLATES[metadata_index],
                                   ["insufficient_info"], None)]
         for question_number, (task, wording, fields, denominator) in enumerate(templates, start=1):
             questions.append(QuestionCandidate(question_id=f"{pack_id}-Q{question_number}", pack_id=pack_id,
                                                record_ids=ids, task_type=task, wording=wording,
-                                               expected_fields=fields, denominator_spec=denominator))
+                                               expected_fields=fields, denominator_spec=denominator,
+                                               metadata_required=["date", "rating", "customer_id"][metadata_index]
+                                               if task == "insufficient_info" else None))
     return questions
 
 

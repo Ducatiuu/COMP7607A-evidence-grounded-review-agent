@@ -27,9 +27,10 @@ After legally obtaining and locally parsing SemEval XML, `scripts.prepare_semeva
 
 ```powershell
 .\.venv\Scripts\python -m scripts.build_subsets --questions data/processed/candidate_questions.json --out data/processed/candidate_subsets.json
+.\.venv\Scripts\python -m scripts.audit_questions --questions data/processed/candidate_questions.json --references data/gold/candidate_references.json --out data/processed/candidate_question_audit.json
 ```
 
-The script requires 20 complete six-type packs and preselects 20 repeat, 30 gold/ablation diagnostic and 30 evidence review question IDs across all packs. It uses no model outputs or gold answers. Every list remains `CANDIDATE_UNREVIEWED` pending two-person wording/reference review and formal freeze. The synthetic challenge pair is likewise only a dry-run candidate. Follow [annotation guide](annotation_guide.md).
+The subset script requires 20 complete six-type packs and preselects 20 repeat, 30 gold/ablation diagnostic and 30 evidence review question IDs across all packs. It uses no model outputs or gold answers. The question audit checks pack scope/overlap, empty and nonempty selections, undefined rates, tied first ranks and all three absent-metadata variants. It writes a report and exits 2 if any coverage gap remains; a gap-free result still says `CANDIDATE_REVIEW_REQUIRED`, never frozen or human-approved. The real 120-question audit awaits licensed sampled records. The synthetic challenge pair is likewise only a dry-run candidate. Follow [annotation guide](annotation_guide.md).
 
 After reviewed main A/B/C runs exist, generate method-blinded packets:
 

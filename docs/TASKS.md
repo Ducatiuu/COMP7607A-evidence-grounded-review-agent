@@ -45,6 +45,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P5-METADATA-VARIATION | Rotate missing date/rating/customer-ID question wording | P-PROPOSAL, P5-QUESTIONS | Three distinct prompts across packs; no invented metadata | PASS (candidate code) | NOT AUTHORIZED |
 | P6-DEMO-ROUTE | Add negative priority, AND selection and missing-date refusal to UI | P1-PROPOSAL-FIXTURE, P6-ANALYSIS | App interaction from load through evidence, AND, refusal and comparison | PASS (synthetic UI) | NOT AUTHORIZED |
 | P5-BOUNDARY-AUDIT | Verify 120 real candidate questions cover empty results, ties and undefined rates | P5-REALDATA, P5-HUMAN | Coverage counts and reviewed, frozen wording/reference manifest | BLOCKED: real packs/review | NOT AUTHORIZED |
+| P5-BOUNDARY-CODE | Implement candidate question/pack/metadata coverage gate | P5-QUESTIONS | Hashes, six types/pack, scope, overlap, boundary cases; gap exits 2 | PASS (synthetic) | NOT AUTHORIZED |
 | P6-DEMO-SCALE | Prepare 50–100 clearly simulated presentation records | P6-DEMO-ROUTE | 60 unique entries, five categories/four sentiments, exact spans, UI A/B/C MOCK path | PASS (synthetic) | NOT AUTHORIZED |
 | P6-GENUINE-DEMO | Save genuine baseline/proposed run and rehearse final presentation | P6-DEMO-SCALE, provider approval | Real saved output, truthful labels, four-minute human rehearsal | BLOCKED: provider/human work | NOT AUTHORIZED |
 
