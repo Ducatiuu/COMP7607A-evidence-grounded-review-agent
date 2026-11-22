@@ -8,7 +8,7 @@ from src.absa_service import ExtractionService
 from src.controllers import DirectLLM, DynamicAgent, FixedWorkflow, QueryParser
 from src.data_loader import dataset_fingerprint
 from src.llm_client import LLMResponse, MockLLMClient
-from src.schemas import AnswerPayload, RecordSet
+from src.schemas import AnswerPayload, ExtractionDataset, RecordSet
 from src.tools import AnalysisContext
 from src.verification import Finalizer
 
@@ -24,13 +24,13 @@ _ASPECTS = {
 }
 
 
-def mock_for_demo(records: RecordSet, *, method: str, question: str | None = None) -> MockLLMClient:
+def mock_for_demo(records: RecordSet, *, method: str, question: str | None = None, include_extraction: bool = True) -> MockLLMClient:
     if dataset_fingerprint(records) != DEMO_FINGERPRINT:
         raise ValueError("MOCK CLI only supports the unchanged synthetic data/demo/core.csv")
     if question is not None and question != DEMO_QUESTION:
         raise ValueError(f"MOCK CLI only supports this exact question: {DEMO_QUESTION}")
     responses = []
-    if method in {"extract", "b", "c"}:
+    if method == "extract" or (method in {"b", "c"} and include_extraction):
         for record in records.records:
             responses.append(LLMResponse(content={
                 "record_id": record.record_id,
@@ -60,19 +60,28 @@ def mock_for_demo(records: RecordSet, *, method: str, question: str | None = Non
     return MockLLMClient(deque(responses))
 
 
-def run_demo_method(records: RecordSet, *, method: str, question: str, question_id: str = "demo-rate") -> tuple[AnswerPayload, int]:
+def run_demo_method(records: RecordSet, *, method: str, question: str, question_id: str = "demo-rate",
+                    extraction_dataset: ExtractionDataset | None = None) -> tuple[AnswerPayload, int]:
     """Execute a genuine local control path with synthetic model responses."""
-    client = mock_for_demo(records, method=method, question=question)
+    client = mock_for_demo(records, method=method, question=question, include_extraction=extraction_dataset is None)
     if method == "a":
         return DirectLLM(client, "mock").run(records=records, question=question, question_id=question_id), 0
-    extraction = ExtractionService(client, provider_model="mock").extract(records)
-    ctx = AnalysisContext(extraction.dataset)
+    if extraction_dataset is None:
+        extraction = ExtractionService(client, provider_model="mock").extract(records)
+        dataset = extraction.dataset
+        extraction_requests = extraction.requests
+    else:
+        if extraction_dataset.records != records.records or extraction_dataset.fingerprint != dataset_fingerprint(records):
+            raise ValueError("supplied extraction does not match demo records")
+        dataset = extraction_dataset
+        extraction_requests = 0
+    ctx = AnalysisContext(dataset)
     if method == "b":
         answer = FixedWorkflow(QueryParser(client, "mock"), Finalizer(client, "mock")).run(ctx=ctx, question=question, question_id=question_id)
     elif method == "c":
         answer = DynamicAgent(QueryParser(client, "mock"), client, Finalizer(client, "mock"), "mock").run(ctx=ctx, question=question, question_id=question_id)
     else:
         raise ValueError("unsupported demo method")
-    usage = {**answer.usage, "extraction_requests": extraction.requests,
-             "api_requests": (answer.usage.get("api_requests") or 0) + extraction.requests}
-    return answer.model_copy(update={"usage": usage}), extraction.requests
+    usage = {**answer.usage, "extraction_requests": extraction_requests,
+             "api_requests": (answer.usage.get("api_requests") or 0) + extraction_requests}
+    return answer.model_copy(update={"usage": usage}), extraction_requests

@@ -27,7 +27,11 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P5-HUMAN | Question/reference/challenge/evidence human review | P5-QUESTIONS | Two independent reviewers and adjudication as specified | PENDING HUMAN WORK | NOT AUTHORIZED |
 | P5-REALDATA | Licensed SemEval acquisition and actual candidate manifests | P5-XML, P5-SPLIT | Authorized local files, hashes, distributions, overlap audit | BLOCKED: files/terms absent | NOT AUTHORIZED |
 | P5-RUNNER | Resumable offline experiment runner | P3-B, P4-C, P5-METRICS | Failure retention, MOCK dry-run and config-safe resume | PASS (synthetic demo) | NOT AUTHORIZED |
-| P6-UI | Streamlit upload, analysis and comparison | P3-B, P4-C | Interactive offline demo path and clear MOCK status | PENDING | NOT AUTHORIZED |
+| P6-STATE | Local UI state and refresh restore | P1-LOAD | UUID-scoped ignored storage, validation, clear and refresh tests | PASS (local) | NOT AUTHORIZED |
+| P6-DATA | Streamlit CSV and extraction ingress | P6-STATE, P1-EXTRACT | Demo/upload validation, limits and provenance shown | PASS (offline) | NOT AUTHORIZED |
+| P6-ANALYSIS | Aspect summary and evidence controls | P6-DATA, P2-FILTER, P2-AGG, P2-EVIDENCE | Tool-backed counts, chart, exact source, partial status | PASS (offline) | NOT AUTHORIZED |
+| P6-ASK | Synthetic A/B/C question interaction | P6-DATA, P3-A, P3-B, P4-C | MOCK answer, denominator, trace and restricted arbitrary data | PASS (synthetic demo) | NOT AUTHORIZED |
+| P6-COMPARE | A/B/C shared-extraction view and results status | P6-ASK | Same fixture and shared B/C artifact, costs and MOCK labels | PASS (synthetic demo) | NOT AUTHORIZED |
 | P7A | Offline experiment branches, budget checks and report scripts | P5-RUNNER, P5-QUESTIONS | All branches dry-run with explicit MOCK outputs | PENDING | NOT AUTHORIZED |
 
 Status reflects verified work, not intention. Each module gets a separate review and test entry in `PROGRESS.md` before PASS.

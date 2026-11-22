@@ -1,6 +1,6 @@
 # Evidence-Grounded ABSA Agent
 
-Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, a shared structured query parser and A/B/C controllers. Evaluation and UI are subsequent phases.
+Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, A/B/C controllers, local SemEval preparation code, offline metrics and a synthetic Streamlit demo. Formal data, human review, live API integration and research results remain pending.
 
 ## Set up
 
@@ -8,7 +8,7 @@ Python 3.12 is required.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -e '.[dev]'
+.\.venv\Scripts\python -m pip install -e '.[dev,ui]'
 .\.venv\Scripts\python -m pytest -q
 ```
 
@@ -35,5 +35,13 @@ Expected service result: 2 negative records / 3 records mentioning service = 2/3
 ```
 
 Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. Configuration and full task payload hashes block accidental mixing. The current runner supports only the synthetic demo for `main` and `repeats`; formal dev/test, gold substitution, ablation and challenge execution remain pending. See [data handling](docs/data_sources.md) for local licensed-file preparation.
+
+## Local Streamlit demo
+
+```powershell
+.\.venv\Scripts\python -m streamlit run app.py
+```
+
+The server binds to `127.0.0.1`. Load the synthetic demo (or upload the unchanged `data/demo/core.csv`), run MOCK extraction, inspect aspect counts and evidence, ask the displayed question with A/B/C, then compare methods and traces. Browser refresh restores locally saved state through a random URL token; **Clear local workspace** removes that saved state. Uploads are capped at 1 MB for CSV and 5 MB for extraction JSON. A different CSV can be paired with a separately validated `ExtractionDataset` JSON for deterministic charts/evidence; the canned MOCK question is deliberately unavailable for it. No live API or formal result is shown.
 
 The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Raw data, gold labels, credentials, and local run outputs are ignored by Git.
