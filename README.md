@@ -26,6 +26,8 @@ The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path,
 
 `src.live_cost.plan_cost` additionally requires a dated price source, non-cached input/output rates, per-request token bounds and a USD cap. It refuses a declared worst-case plan above the cap. `CostLimitedClient` freezes further network requests if transport fails or measured tokens are missing/out of bounds. Its USD figure is an estimate from supplied rates, not a provider bill; an unexpectedly large first response or stale/incorrect prices can still violate the planned bound. No price or live-spend approval is embedded in this repository.
 
+`python -m src.live_cli ask --help` and `python -m src.live_cli extract --help` expose the model-backed CSV path. Both commands run a local `DRY_RUN` by default and require the file, column mapping if needed, provider/model, record/character/request/token ceilings, dated input/output prices and a USD cap. `--execute` explicitly enables network use and reads the matching key from the environment; it should be used only after the team confirms the exact model, data transfer, current prices and approved budget. Failed/partial extraction and failed answers return a nonzero exit status. The CLI does not use demo answers or formal gold labels. The Streamlit UI and experiment runner remain MOCK-only.
+
 ## Offline CLI (synthetic fixture)
 
 The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.

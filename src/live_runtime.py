@@ -62,6 +62,14 @@ class ModelRun:
     output_tokens: int | None
 
 
+def conservative_request_bound(method: Literal["a", "b", "c"], record_count: int,
+                               *, prepared_extraction: bool = False) -> int:
+    if method not in {"a", "b", "c"} or type(record_count) is not int or record_count < 1:
+        raise ValueError("valid method and positive record count required")
+    extraction_bound = 0 if method == "a" or prepared_extraction else 2 * record_count
+    return extraction_bound + {"a": 1, "b": 3, "c": 7}[method]
+
+
 def run_model_method(
     records: RecordSet, *, method: Literal["a", "b", "c"], question: str,
     client: LLMClient, model_id: str, max_api_requests: int,
@@ -87,9 +95,8 @@ def run_model_method(
                                            or extraction_dataset.provider_model != model_id):
         raise ValueError("supplied extraction does not match records or model")
 
-    extraction_bound = 0 if method == "a" or extraction_dataset is not None else 2 * len(records.records)
-    query_bound = {"a": 1, "b": 3, "c": 7}[method]
-    bound = extraction_bound + query_bound
+    bound = conservative_request_bound(method, len(records.records),
+                                       prepared_extraction=extraction_dataset is not None)
     if type(max_api_requests) is not int or max_api_requests < bound:
         raise ValueError(f"request ceiling must allow the conservative {bound}-request bound")
 
