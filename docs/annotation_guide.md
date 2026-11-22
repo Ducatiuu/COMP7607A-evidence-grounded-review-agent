@@ -6,6 +6,8 @@ This document specifies work for human reviewers; no human labels or adjudicatio
 
 Two team members independently inspect every candidate wording, pack ID, answerability, denominator, expected fields and gold-derived reference. They record proposed edits before seeing A/B/C outputs. A third reviewer resolves disagreements. Only after review should an authorized maintainer freeze question/reference manifests and hashes. Neither a model-generated wording nor an automated test counts as human approval.
 
+After a gap-free candidate audit, run `python -m scripts.export_question_review` to create two separate, blank 120-row sheets under ignored `data/gold/question_review/<question-hash>/`. Each sheet includes question and reference hashes, pack record IDs and the gold-derived reference but no review text. Reviewers should use the local `data/processed/test.csv` and `data/gold/test.json` to inspect source records and labels. They must complete their own sheets independently; the script refuses to overwrite existing sheets. Keep the completed sheets local and resolve differences before freezing anything.
+
 ## Contrastive challenge pairs
 
 Create 40 pairs of short restaurant reviews, with one controlled sentiment/category change per pair and other aspect statements held stable. Two annotators label each pair independently: categories before/after, intended change, stable aspects, and any ambiguity. A third person adjudicates disagreements. Record original wording and revision history. Keep challenge candidates separate from SemEval and main evaluation; do not mark generated suggestions as human-written final items.

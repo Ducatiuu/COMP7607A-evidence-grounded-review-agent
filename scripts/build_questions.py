@@ -19,7 +19,7 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     split = CandidateSplit.model_validate_json(Path(args.split).read_text(encoding="utf-8"))
     gold = [GoldRecord.model_validate(item) for item in json.loads(Path(args.gold).read_text(encoding="utf-8"))]
-    questions = build_candidate_questions(split)
+    questions = build_candidate_questions(split, gold)
     references = build_gold_references(questions, gold)
     questions_path, refs_path = Path(args.questions_out), Path(args.references_out)
     questions_path.parent.mkdir(parents=True, exist_ok=True)

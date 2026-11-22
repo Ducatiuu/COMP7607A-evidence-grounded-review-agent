@@ -51,6 +51,20 @@ def test_undefined_rate_and_missing_gold_are_explicit():
         build_gold_references(questions, gold[:-1])
 
 
+def test_gold_guided_rate_candidate_covers_zero_denominator_without_leaking_gold():
+    split = _split()
+    gold = _gold()
+    questions = build_candidate_questions(split, gold)
+    rate_question = questions[1]
+    assert rate_question.rate_category.value == "ambience"
+    assert "ambience" in rate_question.wording
+    assert "positive" not in rate_question.wording
+    reference = build_gold_references(questions, gold)[1]
+    assert (reference.numerator, reference.denominator, reference.rate) == (0, 0, None)
+    with pytest.raises(ValueError, match="complete unique gold IDs"):
+        build_candidate_questions(split, gold[:-1])
+
+
 def test_question_script_keeps_gold_separate_from_question_file(tmp_path):
     split_path, gold_path = tmp_path / "split.json", tmp_path / "gold.json"
     questions_path, references_path = tmp_path / "questions.json", tmp_path / "references.json"

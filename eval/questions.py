@@ -19,6 +19,7 @@ class QuestionCandidate(StrictModel):
     wording: str
     expected_fields: list[str]
     denominator_spec: Literal["aspect_mentions", "all_records"] | None = None
+    rate_category: Category | None = None
     metadata_required: Literal["date", "rating", "customer_id"] | None = None
     status: Literal["CANDIDATE_UNREVIEWED"] = "CANDIDATE_UNREVIEWED"
 
@@ -53,7 +54,23 @@ _MISSING_METADATA_TEMPLATES = [
 ]
 
 
-def build_candidate_questions(split: CandidateSplit) -> list[QuestionCandidate]:
+def build_candidate_questions(split: CandidateSplit, gold: list[GoldRecord] | None = None) -> list[QuestionCandidate]:
+    # Select one zero-denominator rate candidate from gold before any model run.
+    # Gold only affects offline candidate wording; it is never included in runtime questions.
+    undefined_target: tuple[int, Category] | None = None
+    if gold is not None:
+        by_id = {item.record_id: item for item in gold}
+        if len(by_id) != len(gold) or any(record_id not in by_id for pack in split.packs for record_id in pack):
+            raise ValueError("complete unique gold IDs required for rate boundary selection")
+        for pack_number, ids in enumerate(split.packs, start=1):
+            present = {aspect.category for record_id in ids for aspect in by_id[record_id].aspects}
+            for category in (Category.PRICE, Category.AMBIENCE, Category.SERVICE,
+                             Category.FOOD, Category.ANECDOTES_MISCELLANEOUS):
+                if category not in present:
+                    undefined_target = (pack_number, category)
+                    break
+            if undefined_target is not None:
+                break
     questions = []
     for pack_number, ids in enumerate(split.packs, start=1):
         pack_id = f"P{pack_number:02d}"
@@ -61,9 +78,18 @@ def build_candidate_questions(split: CandidateSplit) -> list[QuestionCandidate]:
         templates = [*_TEMPLATES, ("insufficient_info", _MISSING_METADATA_TEMPLATES[metadata_index],
                                   ["insufficient_info"], None)]
         for question_number, (task, wording, fields, denominator) in enumerate(templates, start=1):
+            rate_category = None
+            if task == "rate":
+                rate_category = Category.SERVICE
+                if undefined_target is not None and undefined_target[0] == pack_number:
+                    rate_category = undefined_target[1]
+            if task == "rate" and rate_category != Category.SERVICE:
+                wording = (f"Among reviews mentioning {rate_category.value}, what fraction express "
+                           f"negative {rate_category.value} sentiment?")
             questions.append(QuestionCandidate(question_id=f"{pack_id}-Q{question_number}", pack_id=pack_id,
                                                record_ids=ids, task_type=task, wording=wording,
                                                expected_fields=fields, denominator_spec=denominator,
+                                               rate_category=rate_category,
                                                metadata_required=["date", "rating", "customer_id"][metadata_index]
                                                if task == "insufficient_info" else None))
     return questions
@@ -86,10 +112,12 @@ def build_gold_references(questions: list[QuestionCandidate], gold: list[GoldRec
         if question.task_type == "count":
             reference = GoldReference(question_id=question.question_id, task_type=question.task_type, count=len(service_negative))
         elif question.task_type == "rate":
-            mentions = [record_id for record_id in question.record_ids if Category.SERVICE in labels[record_id]]
+            category = question.rate_category or Category.SERVICE
+            mentions = [record_id for record_id in question.record_ids if category in labels[record_id]]
+            negatives = negative_ids(category)
             reference = GoldReference(question_id=question.question_id, task_type=question.task_type,
-                                      numerator=len(service_negative), denominator=len(mentions),
-                                      rate=len(service_negative) / len(mentions) if mentions else None)
+                                      numerator=len(negatives), denominator=len(mentions),
+                                      rate=len(negatives) / len(mentions) if mentions else None)
         elif question.task_type == "selection":
             selected = [record_id for record_id in question.record_ids
                         if labels[record_id].get(Category.FOOD) == "positive" and labels[record_id].get(Category.SERVICE) == "negative"]

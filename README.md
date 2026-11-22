@@ -1,6 +1,6 @@
 # Evidence-Grounded ABSA Agent
 
-Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, A/B/C controllers, local SemEval preparation code, offline metrics and a synthetic Streamlit demo. A tested OpenAI/DeepSeek Responses transport is available behind the shared model interface. Official Train V2.0 and unlabeled Phase B input are now locally available; the separate Gold test archive, human review, live inference and research results remain pending.
+Local development of an English restaurant review analysis system for COMP7607A. The current offline build has typed records, CSV loading, bounded extraction with a versioned cache, four deterministic tools, A/B/C controllers, local SemEval preparation code, offline metrics and a synthetic Streamlit demo. A tested OpenAI/DeepSeek Responses transport is available behind the shared model interface. Licensed Train V2.0, Phase B input and Gold test XML have been locally audited; real candidate splits and questions exist under ignored paths. Human review, formal freeze, live inference and research results remain pending.
 
 ## Set up
 

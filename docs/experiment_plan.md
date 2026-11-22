@@ -1,6 +1,6 @@
 # Offline experiment preparation
 
-All commands here use synthetic fixtures. `MOCK` outputs verify software flow, not research results. Licensed SemEval XML, human question/reference review, adjudicated challenge labels, a real provider and a separately approved budget are absent.
+The local preparation commands now also run on the user-supplied licensed SemEval XML, producing candidate files under ignored paths. `MOCK` outputs verify software flow, not research results. Human question/reference review, adjudicated challenge labels, a working provider key and separately approved real-run scope are still absent.
 
 For a target-size, wholly synthetic data-preparation smoke test, run `python -m scripts.synthetic_protocol_smoke --out outputs/synthetic_protocol`. It generates 3,041/800 synthetic XML sentences and exercises the 150/600 split, 20 packs, 120 candidate questions, subset manifest and boundary audit. Its `SYNTHETIC_TEST_ONLY` counts must never be reported as SemEval statistics.
 
@@ -46,7 +46,7 @@ After legally obtaining and locally parsing SemEval XML, `scripts.prepare_semeva
 .\.venv\Scripts\python -m scripts.audit_questions --questions data/processed/candidate_questions.json --references data/gold/candidate_references.json --out data/processed/candidate_question_audit.json
 ```
 
-The subset script requires 20 complete six-type packs and preselects 20 repeat, 30 gold/ablation diagnostic and 30 evidence review question IDs across all packs. It uses no model outputs or gold answers. The question audit checks pack scope/overlap, empty and nonempty selections, undefined rates, tied first ranks and all three absent-metadata variants. It writes a report and exits 2 if any coverage gap remains; a gap-free result still says `CANDIDATE_REVIEW_REQUIRED`, never frozen or human-approved. The real 120-question audit awaits licensed sampled records. The synthetic challenge pair is likewise only a dry-run candidate. Follow [annotation guide](annotation_guide.md).
+The subset script requires 20 complete six-type packs and preselects 20 repeat, 30 gold/ablation diagnostic and 30 evidence review question IDs across all packs. It uses no model outputs or gold answers. Before any model run, candidate-question generation may use the separate Gold labels to select one pack/category with zero mentions for the undefined-rate boundary case; the category and wording are explicit in the question, but no Gold label or reference value is sent to a model. The question audit checks pack scope/overlap, empty and nonempty selections, undefined rates, tied first ranks and all three absent-metadata variants. It writes a report and exits 2 if any coverage gap remains; a gap-free result still says `CANDIDATE_REVIEW_REQUIRED`, never frozen or human-approved. The synthetic challenge pair is likewise only a dry-run candidate. Follow [annotation guide](annotation_guide.md).
 
 After reviewed main A/B/C runs exist, generate method-blinded packets:
 
