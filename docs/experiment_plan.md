@@ -54,7 +54,7 @@ After reviewed main A/B/C runs exist, generate method-blinded packets:
 .\.venv\Scripts\python -m scripts.make_blind_review --runs outputs/runs/main-a outputs/runs/main-b outputs/runs/main-c --subsets data/processed/candidate_subsets.json --out outputs/blind_review
 ```
 
-`review_items.csv` omits method; `private_mapping.csv` stores the key separately. Inspect answer prose for self-identifying method text before handing packets to reviewers. Both files may contain licensed review content and stay in ignored local output. The exporter writes no human judgments and refuses to overwrite a mapping. The annotation guide provides blank judgment headers for independent reviewers and adjudication.
+`review_items.csv` omits method; `private_mapping.csv` stores the key separately. Before writing, the exporter checks that the three main runs share task keys/hash, dataset, question manifest, split, model and prompt version; B/C must also have the same extraction-artifact hash when supplied. It rejects nonconsecutive attempts and recognizable method, workflow or tool names in reviewer-visible answer fields. This is a conservative text check: a source quote may need manual redaction, and indirect clues may remain. Inspect the full packet before handing it to reviewers. Both files may contain licensed review content and stay in ignored local output. The exporter writes no human judgments and refuses to overwrite a mapping. The annotation guide provides blank judgment headers for independent reviewers and adjudication.
 
 ## Scoring and report data
 
