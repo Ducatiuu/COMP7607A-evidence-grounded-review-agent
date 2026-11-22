@@ -25,3 +25,5 @@ question_id,blind_answer_id,annotator_id,claim_id,claim_type,claim_text,support_
 ```
 
 Store completed sheets under ignored `data/challenge/` or another access-controlled local path; do not publish reviewers' names, raw licensed review text or formal gold by default.
+
+After two independent challenge sheets and third-person adjudication, build a separate local JSON reference file under ignored `data/gold/`. Each pair needs `pair_id`, `source_gold` and `edited_gold` (record IDs plus category/sentiment labels), `intended_change_categories`, `stable_categories`, subgroup tags (`negation`, `contrast`, `implicit_aspect`, or `within_aspect_conflict`), two distinct pseudonymous `independent_reviewer_ids`, a different `adjudicator_id`, and the SHA-256 of the retained adjudication record. Set `provenance` to `HUMAN_ADJUDICATED` only for actual human work. `scripts.score_challenge` consumes this file separately from extraction predictions; MOCK predictions cannot be reported as human-adjudicated live results. Synthetic software tests use `SYNTHETIC_TEST_ONLY` with no reviewer metadata.

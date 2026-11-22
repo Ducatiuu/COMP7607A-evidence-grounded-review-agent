@@ -25,7 +25,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P5-COND | Independent gold-category-conditioned sentiment prompt | P5-XML | Prompt omits gold sentiment; failed pairs retained | PASS (offline) | NOT AUTHORIZED |
 | P5-METRICS | ABSA and QA evaluation metrics | P5-QUESTIONS | F1, exact, undefined, tie, false refusal and failure tests | PASS (offline) | NOT AUTHORIZED |
 | P5-HUMAN | Question/reference/challenge/evidence human review | P5-QUESTIONS | Two independent reviewers and adjudication as specified | PENDING HUMAN WORK | NOT AUTHORIZED |
-| P5-REALDATA | Licensed SemEval acquisition and actual candidate manifests | P5-XML, P5-SPLIT | Authorized local files, hashes, distributions, overlap audit | BLOCKED: files/terms absent | NOT AUTHORIZED |
+| P5-REALDATA | Licensed SemEval acquisition and actual candidate manifests | P5-XML, P5-SPLIT | Authorized local files, hashes, distributions, overlap audit | BLOCKED: local licensed XML absent | NOT AUTHORIZED |
 | P5-RUNNER | Resumable offline experiment runner | P3-B, P4-C, P5-METRICS | Failure retention, MOCK dry-run and config-safe resume | PASS (synthetic demo) | NOT AUTHORIZED |
 | P6-STATE | Local UI state and refresh restore | P1-LOAD | UUID-scoped ignored storage, validation, clear and refresh tests | PASS (local) | NOT AUTHORIZED |
 | P6-DATA | Streamlit CSV and extraction ingress | P6-STATE, P1-EXTRACT | Demo/upload validation, limits and provenance shown | PASS (offline) | NOT AUTHORIZED |
@@ -36,6 +36,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P7A-ABLATION | C output-check and repair ablation | P3-VERIFY, P5-RUNNER | Wrong numeric claim bypasses output check; schema still rejects; MOCK CLI | PASS (synthetic) | NOT AUTHORIZED |
 | P7A-SUBSETS | Pre-result 20/30/30 question candidate manifests | P5-QUESTIONS | Complete pack/type coverage, deterministic hash, unreviewed marker | PASS (synthetic) | NOT AUTHORIZED |
 | P7A-CHALLENGE | Extraction-only challenge candidate dry-run | P1-EXTRACT | Pair validation, two extraction calls, resume, no human score | PASS (synthetic) | NOT AUTHORIZED |
+| P7A-CHALLENGE-SCORE | Separate change/stability scorer with label provenance | P7A-CHALLENGE | Correct/failure denominators, subgroup support, MOCK/human separation | PASS (synthetic tests) | NOT AUTHORIZED |
 | P7A-REPORT | Independent MOCK answer scoring and paired summaries | P5-METRICS, P5-RUNNER | Separate reference, pair IDs/deltas, missing/failure/unknown usage | PASS (synthetic) | NOT AUTHORIZED |
 | P7A-BUDGET | Request/token cost planning and real-run approval checklist | P5-RUNNER | 570 answers, explicit bounds/prices, no assumed provider cost | PASS (planning code) | NOT AUTHORIZED |
 | P7A-BLIND | Method-blinded review export and blank report template | P7A-SUBSETS, P7A-REPORT | Private mapping, no human labels, no overwrite | PASS (synthetic) | NOT AUTHORIZED |
