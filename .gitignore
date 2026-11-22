@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.egg-info/
+.env
+.codex-local/
+Proposal*.pdf
+AGENTS-v2.5.md
+CODEX-v2.5.md
+reference/
+data/raw/
+data/processed/
+data/gold/
+data/challenge/
+outputs/
+*.log
