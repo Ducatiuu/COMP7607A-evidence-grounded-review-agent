@@ -14,6 +14,8 @@ def test_direct_method_receives_complete_raw_pack_only():
     assert answer.status == "ok" and answer.method == "a" and answer.tool_trace == []
     request = client.requests[0]
     assert request.stage == "direct_answer"
+    assert request.payload["prompt_version"] == "direct-v2"
+    assert '"answer_text"' in request.system_prompt and '"numeric_claims"' in request.system_prompt
     assert [r["record_id"] for r in request.payload["records"]] == ["R01", "R02", "R03", "R04"]
     assert "extractions" not in request.payload and "query" not in request.payload and "tools" not in request.payload
 
