@@ -59,6 +59,16 @@ def test_invalid_query_diagnostic_is_structural_and_redacted():
     assert "SECRET" not in json.dumps(outcome.diagnostic)
 
 
+def test_root_coherence_error_reports_only_static_rule():
+    client = _client({"task_type": "count", "denominator_spec": "aspect_mentions",
+                      "ambiguity_note": "SECRET_REVIEW_TEXT"})
+    outcome = QueryParser(client=client, provider_model="mock").parse("Count reviews")
+    assert outcome.status == "failed"
+    assert outcome.diagnostic["issues"] == [{"path": "[root]", "type": "value_error",
+                                              "coherence_rule": "denominator_on_non_rate_metric"}]
+    assert "SECRET" not in json.dumps(outcome.diagnostic)
+
+
 def test_v2_query_prompt_names_exact_metric_values_and_rejects_unknown_version():
     client = _client({"task_type": "count", "categories": ["service"],
                       "metric": "negative_count"})

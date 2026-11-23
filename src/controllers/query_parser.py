@@ -53,17 +53,32 @@ _SAFE_QUERY_FIELDS = frozenset({
     "metric", "denominator_spec", "metadata_required", "needs_evidence",
     "ambiguity_note",
 })
+_SAFE_COHERENCE_RULES = {
+    "multiple conditions require AND or OR": "missing_condition_operator",
+    "operator without conditions": "orphan_condition_operator",
+    "duplicate target categories": "duplicate_target_categories",
+    "rate requires an explicit denominator": "rate_missing_denominator",
+    "rate requires target categories and negative_rate metric": "rate_missing_targets_or_metric",
+    "selection requires conditions": "selection_missing_conditions",
+    "comparison requires at least two categories and a metric": "comparison_missing_targets_or_metric",
+    "denominator supplied for a non-rate metric": "denominator_on_non_rate_metric",
+}
 
 
 def _safe_query_diagnostic(exc: ValidationError) -> dict[str, object]:
-    errors = exc.errors(include_input=False, include_context=False, include_url=False)
+    errors = exc.errors(include_input=False, include_context=True, include_url=False)
     issues = []
     for error in errors[:8]:
         parts = ["[index]" if type(part) is int else part if isinstance(part, str) and part in _SAFE_QUERY_FIELDS
                  else "[unrecognized]" for part in error["loc"]]
         kind = error["type"]
-        issues.append({"path": ".".join(parts) or "[root]",
-                       "type": kind if isinstance(kind, str) and re.fullmatch(r"[a-z_]{1,48}", kind) else "other"})
+        issue = {"path": ".".join(parts) or "[root]",
+                 "type": kind if isinstance(kind, str) and re.fullmatch(r"[a-z_]{1,48}", kind) else "other"}
+        if not error["loc"] and kind == "value_error":
+            reason = str(error.get("ctx", {}).get("error"))
+            if reason in _SAFE_COHERENCE_RULES:
+                issue["coherence_rule"] = _SAFE_COHERENCE_RULES[reason]
+        issues.append(issue)
     return {"stage": "schema_validation", "issue_count": len(errors), "issues": issues}
 
 
