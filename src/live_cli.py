@@ -9,6 +9,7 @@ import sys
 
 from src.absa_service import ExtractionService
 from src.data_loader import DataLoadError, dataset_fingerprint, load_csv
+from src.deepseek_balance import BalanceError, require_dev_run_balance
 from src.live_cost import BudgetError, CostLimitedClient, plan_cost
 from src.live_runtime import conservative_request_bound, run_model_method
 from src.responses_client import ResponsesClient
@@ -100,6 +101,12 @@ def main(argv: list[str] | None = None) -> int:
     if not os.environ.get(_KEY_NAMES[args.provider]):
         print(f"{_KEY_NAMES[args.provider]} is not set", file=sys.stderr)
         return 2
+    if args.provider == "deepseek":
+        try:
+            require_dev_run_balance(plan.max_cost_usd)
+        except (BalanceError, ValueError) as exc:
+            print(str(exc), file=sys.stderr)
+            return 2
 
     guarded = CostLimitedClient(client, plan)
     if args.command == "ask":

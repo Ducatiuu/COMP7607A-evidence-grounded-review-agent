@@ -13,6 +13,7 @@ from eval.questions import QuestionCandidate
 from scripts.plan_dev_pilot import build_plan
 from src.absa_service import ExtractionService
 from src.data_loader import load_csv
+from src.deepseek_balance import BalanceError, require_dev_run_balance
 from src.live_cost import CostLimitedClient, plan_cost
 from src.live_runtime import conservative_request_bound, run_model_method
 from src.llm_client import LLMClient, LLMRequest, LLMResponse
@@ -229,6 +230,7 @@ def main(argv: list[str] | None = None) -> int:
             raise ValueError("live execution requires the exact approved plan fingerprint")
         if not os.environ.get("DEEPSEEK_API_KEY"):
             raise ValueError("DEEPSEEK_API_KEY is unavailable")
+        require_dev_run_balance(plan["max_cost_usd"])
         provider = ResponsesClient("deepseek", plan["model"],
                                    max_output_tokens=plan["max_output_tokens_per_request"],
                                    timeout_seconds=plan["timeout_seconds"], allow_network=True)
@@ -236,7 +238,7 @@ def main(argv: list[str] | None = None) -> int:
                             questions_path=Path(args.questions), client=provider)
         print(json.dumps(summary, ensure_ascii=False))
         return 0 if summary["execution_checks_pass"] else 3
-    except (OSError, ValueError, KeyError, TypeError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, BalanceError) as exc:
         print(f"pilot preflight failed: {type(exc).__name__}", file=sys.stderr)
         return 2
 

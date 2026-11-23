@@ -2,6 +2,7 @@ import json
 from collections import deque
 
 from src.data_loader import load_csv
+from src.deepseek_balance import BalanceError
 from src.live_cli import main
 from src.llm_client import LLMResponse, MockLLMClient
 
@@ -108,3 +109,22 @@ def test_live_direct_schema_failure_retains_safe_diagnostics_and_usage(tmp_path,
     assert "private response text" not in json.dumps(result)
     assert "unexpected private field" not in json.dumps(result)
     assert len(fixture.requests) == 1
+
+
+def test_deepseek_live_path_stops_before_provider_if_balance_gate_fails(tmp_path, monkeypatch, capsys):
+    path = tmp_path / "reviews.csv"
+    path.write_text("review\nSlow service.\n", encoding="utf-8")
+    args = _args(path, command="extract", execute=True)
+    args[args.index("--provider") + 1] = "deepseek"
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key-do-not-use")
+    def no_balance(cap):
+        raise BalanceError("balance unavailable")
+
+    monkeypatch.setattr("src.live_cli.require_dev_run_balance", no_balance)
+    class NoCallProvider:
+        def complete_json(self, request):
+            raise AssertionError("model request sent")
+
+    monkeypatch.setattr("src.live_cli.ResponsesClient", lambda *args, **kwargs: NoCallProvider())
+    assert main(args) == 2
+    assert "balance unavailable" in capsys.readouterr().err
