@@ -1,4 +1,5 @@
 from collections import deque
+import json
 
 from src.absa_service import ExtractionService
 from src.llm_client import LLMResponse, MockLLMClient
@@ -54,3 +55,41 @@ def test_mismatched_actual_model_is_failed_and_not_cached():
     run = ExtractionService(client=client, provider_model="unexpected-model").extract(RecordSet(records=[record]))
     assert run.dataset.extractions[0].status == "failed"
     assert run.cache_hits == 0
+
+
+def test_attempt_diagnostics_keep_only_safe_structure_and_categories():
+    record = Record(record_id="R1", text="Tasty food.")
+    client = MockLLMClient(deque([
+        LLMResponse(content={"record_id": "R1", "status": "ok", "error": None,
+                             "aspects": [], "SECRET_FIELD": "SECRET_MODEL_OUTPUT"}, model="mock"),
+        _response("R1", [{"category": "food", "sentiment": "positive",
+                          "evidence": ["SECRET_NOT_IN_SOURCE"]}]),
+    ]))
+    run = ExtractionService(client=client, provider_model="mock").extract(RecordSet(records=[record]))
+    assert [item["category"] for item in run.attempt_diagnostics] == [
+        "schema_validation", "evidence_mismatch"]
+    assert run.attempt_diagnostics[0]["issues"][0]["path"] == "[unrecognized]"
+    safe = json.dumps(run.attempt_diagnostics)
+    assert "SECRET" not in safe and "Tasty food" not in safe
+
+
+def test_transport_exception_message_is_never_copied_into_diagnostics():
+    client = MockLLMClient(deque([TimeoutError("SECRET_KEY_VALUE"),
+                                  TimeoutError("SECRET_REVIEW_TEXT")]))
+    run = ExtractionService(client=client, provider_model="mock").extract(
+        RecordSet(records=[Record(record_id="R1", text="Tasty food.")]))
+    assert [item["category"] for item in run.attempt_diagnostics] == ["client_error", "client_error"]
+    assert "SECRET" not in json.dumps(run.attempt_diagnostics)
+
+
+def test_malformed_client_response_is_bounded_validation_failure():
+    class BadClient:
+        def complete_json(self, request):
+            return {"SECRET_FIELD": "SECRET_MODEL_OUTPUT"}
+
+    run = ExtractionService(client=BadClient(), provider_model="mock").extract(
+        RecordSet(records=[Record(record_id="R1", text="Tasty food.")]))
+    assert run.dataset.coverage.failed_ids == ["R1"]
+    assert [item["category"] for item in run.attempt_diagnostics] == [
+        "validation_error", "validation_error"]
+    assert "SECRET" not in json.dumps(run.attempt_diagnostics)

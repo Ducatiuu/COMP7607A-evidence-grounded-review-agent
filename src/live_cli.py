@@ -112,6 +112,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         extraction = ExtractionService(guarded, provider_model=args.model).extract(records)
         payload = {"coverage": extraction.dataset.coverage.model_dump(mode="json"),
+                   "attempt_diagnostics": extraction.attempt_diagnostics,
                    "extractions": [item.model_dump(mode="json") for item in extraction.dataset.extractions]}
         failed = bool(extraction.dataset.coverage.failed_ids)
     print(json.dumps({"mode": "LIVE", **preflight,
