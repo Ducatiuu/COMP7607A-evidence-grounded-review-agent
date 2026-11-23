@@ -131,6 +131,50 @@ def test_conditional_count_needs_aggregate_on_filtered_scope():
     assert _has_minimum_evidence(query, [unfiltered, filtered, scoped])
 
 
+def test_empty_selection_needs_no_nonexistent_evidence():
+    ctx = _dataset()
+    empty_query = QuerySpec(task_type="selection", needs_evidence=True,
+                            conditions=[{"category": "service", "sentiment": "conflict"}])
+    empty_filter = dispatch_tool(ctx, call_id="f0", name="filter_records", arguments={
+        "conditions": [{"category": "service", "sentiment": "conflict"}]})
+    assert empty_filter.data["record_ids"] == []
+    assert _has_minimum_evidence(empty_query, [empty_filter])
+    nonempty_query = QuerySpec(task_type="selection", needs_evidence=True,
+                               conditions=[{"category": "food", "sentiment": "positive"}])
+    nonempty_filter = dispatch_tool(ctx, call_id="f1", name="filter_records", arguments={
+        "conditions": [{"category": "food", "sentiment": "positive"}]})
+    assert nonempty_filter.data["record_ids"]
+    assert not _has_minimum_evidence(nonempty_query, [nonempty_filter])
+    evidence = dispatch_tool(ctx, call_id="e1", name="get_evidence", arguments={
+        "record_ids": nonempty_filter.data["record_ids"]})
+    assert _has_minimum_evidence(nonempty_query, [nonempty_filter, evidence])
+
+    agent, decider, _ = _agent([_decision("call_tools", [_aggregate_call()]),
+                               _decision("finish")], decision_prompt_version="decision-v4")
+    assert agent.run(ctx=ctx, question="What is the negative service rate?").status == "ok"
+    assert "A successful empty filter" in decider.requests[0].system_prompt
+
+
+def test_dynamic_empty_selection_finishes_after_filter_without_quote_tool():
+    parser = MockLLMClient(deque([LLMResponse(content={
+        "task_type": "selection", "needs_evidence": True,
+        "conditions": [{"category": "service", "sentiment": "conflict"}]}, model="mock")]))
+    decider = MockLLMClient(deque([
+        _decision("call_tools", [{"name": "filter_records", "arguments": {
+            "conditions": [{"category": "service", "sentiment": "conflict"}]}}]),
+        _decision("finish"),
+    ]))
+    final = MockLLMClient(deque([LLMResponse(content={
+        "status": "ok", "answer_text": "No matching reviews.",
+        "selected_record_ids": []}, model="mock")]))
+    agent = DynamicAgent(QueryParser(parser, "mock"), decider, Finalizer(final, "mock"),
+                         "mock", decision_prompt_version="decision-v4")
+    answer = agent.run(ctx=_dataset(), question="Which reviews match both conditions?")
+    assert answer.status == "ok" and answer.selected_record_ids == []
+    assert answer.usage["analysis_tool_calls"] == 1
+    assert [event.tool_name for event in answer.tool_trace if event.stage == "analysis_tool"] == ["filter_records"]
+
+
 def test_dynamic_answer_repair_is_separate_from_decision_budget():
     parser_client = MockLLMClient(deque([LLMResponse(content=QUERY, model="mock")]))
     decider = MockLLMClient(deque([_decision("call_tools", [_aggregate_call()]), _decision("finish")]))

@@ -58,8 +58,16 @@ actual QuerySpec and tool history. The action value must be exactly call_tools
 or finish. Do not use call_tool, tool_call, continue, answer, final or a tool
 name as the action value."""
 
+DECISION_PROMPT_V4 = DECISION_PROMPT_V3 + """
+For a selection with a successful filter result, use its complete record_ids
+set. If it is empty, finish: there are no matching records or quotes to fetch.
+Do not repeat filter_records with the same conditions or with a redundant
+record_ids scope. If nonempty and evidence is needed, call get_evidence with
+the selected IDs, then finish after its result. A successful empty filter is
+valid evidence of an empty selection."""
+
 _DECISION_PROMPTS = {"decision-v1": DECISION_PROMPT, "decision-v2": DECISION_PROMPT_V2,
-                     "decision-v3": DECISION_PROMPT_V3}
+                     "decision-v3": DECISION_PROMPT_V3, "decision-v4": DECISION_PROMPT_V4}
 _SAFE_DECISION_FIELDS = frozenset({"action", "calls", "name", "arguments"})
 _SAFE_ACTION_TOKENS = frozenset({
     "call_tool", "tool_call", "continue", "answer", "final", "final_answer",
@@ -129,6 +137,9 @@ def build_tools_for_state(ctx: AnalysisContext, remaining_tool_calls: int) -> li
 
 def _has_minimum_evidence(query: QuerySpec, results: list[ToolResult]) -> bool:
     valid_names = {result.tool_name for result in results if result.status in {"ok", "partial"}}
+    empty_filter = bool(query.conditions and any(
+        result.tool_name == "filter_records" and result.status in {"ok", "partial"}
+        and result.data is not None and result.data["record_ids"] == [] for result in results))
     if query.conditions and "filter_records" not in valid_names:
         return False
     required = {
@@ -138,7 +149,7 @@ def _has_minimum_evidence(query: QuerySpec, results: list[ToolResult]) -> bool:
         "comparison": "compare_aspects",
         "evidence_explanation": "get_evidence",
     }.get(query.task_type)
-    if required not in valid_names:
+    if required not in valid_names and not (required == "get_evidence" and empty_filter):
         return False
     if query.conditions and required in {"aggregate_aspects", "compare_aspects"}:
         filtered_scopes = [set(result.data["record_ids"]) for result in results
@@ -148,7 +159,7 @@ def _has_minimum_evidence(query: QuerySpec, results: list[ToolResult]) -> bool:
                    and result.data is not None and set(result.data["scope_ids"]) in filtered_scopes
                    for result in results):
             return False
-    if query.needs_evidence and "get_evidence" not in valid_names:
+    if query.needs_evidence and "get_evidence" not in valid_names and not empty_filter:
         return False
     return True
 
