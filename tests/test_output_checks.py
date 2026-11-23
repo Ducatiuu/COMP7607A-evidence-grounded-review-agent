@@ -1,4 +1,5 @@
 from collections import deque
+import json
 
 from src.llm_client import LLMResponse, MockLLMClient
 from src.schemas import AnswerPayload, QuerySpec
@@ -55,6 +56,8 @@ def test_finalizer_repairs_once_using_real_tool_result():
     assert answer.usage["api_requests"] == 2 and answer.usage["output_repairs"] == 1
     assert client.requests[1].stage == "answer_repair"
     assert client.requests[1].payload["validation_errors"] == ["unsupported_numeric_claim"]
+    assert answer.usage["attempt_diagnostics"] == [
+        {"attempt": 1, "stage": "output_checks", "codes": ["unsupported_numeric_claim"]}]
 
 
 def test_finalizer_fails_after_one_unsuccessful_repair():
@@ -63,6 +66,24 @@ def test_finalizer_fails_after_one_unsuccessful_repair():
     answer = Finalizer(client, "mock").finish(method="b", question="Service negative rate?", question_id="Q1", query=query, ctx=ctx, results=[result], trace=[])
     assert answer.status == "failed" and answer.error_code == "answer_verification_failed"
     assert len(client.requests) == 2
+    assert [item["codes"] for item in answer.usage["attempt_diagnostics"]] == [
+        ["unsupported_numeric_claim"], ["unsupported_numeric_claim"]]
+
+
+def test_finalizer_schema_diagnostics_are_redacted_after_failed_repair():
+    ctx, result, query = _rate_context()
+    invalid = {"status": "ok", "answer_text": "SECRET_REVIEW_TEXT",
+               "SECRET_FIELD": "SECRET_MODEL_VALUE"}
+    client = MockLLMClient(deque([LLMResponse(content=invalid, model="mock"),
+                                  LLMResponse(content=invalid, model="mock")]))
+    answer = Finalizer(client, "mock").finish(method="b", question="Service rate?",
+                                                question_id="Q1", query=query, ctx=ctx,
+                                                results=[result], trace=[])
+    assert answer.status == "failed" and answer.usage["output_repairs"] == 1
+    diagnostics = answer.usage["attempt_diagnostics"]
+    assert len(diagnostics) == 2 and all(item["stage"] == "schema_validation" for item in diagnostics)
+    assert all(item["issues"][0]["path"] == "[unrecognized]" for item in diagnostics)
+    assert "SECRET" not in json.dumps(diagnostics)
 
 
 def test_finalizer_does_not_report_zero_tokens_after_transport_failure():
