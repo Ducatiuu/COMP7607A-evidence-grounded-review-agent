@@ -1,6 +1,8 @@
 from collections import deque
 import json
 
+import pytest
+
 from src.controllers import DirectLLM
 from src.llm_client import LLMResponse, MockLLMClient
 from src.schemas import RecordSet
@@ -18,6 +20,20 @@ def test_direct_method_receives_complete_raw_pack_only():
     assert '"answer_text"' in request.system_prompt and '"numeric_claims"' in request.system_prompt
     assert [r["record_id"] for r in request.payload["records"]] == ["R01", "R02", "R03", "R04"]
     assert "extractions" not in request.payload and "query" not in request.payload and "tools" not in request.payload
+
+
+def test_direct_v3_comparison_shape_is_explicit():
+    records = RecordSet(records=_dataset().dataset.records)
+    client = MockLLMClient(deque([LLMResponse(content={
+        "status": "ok", "answer_text": "Food and service tie.",
+        "comparison_groups": [["food", "service"], ["price"]]}, model="mock")]))
+    answer = DirectLLM(client, "mock", prompt_version="direct-v3").run(
+        records=records, question="Compare categories")
+    assert answer.status == "ok"
+    assert client.requests[0].payload["prompt_version"] == "direct-v3"
+    assert '[["food","service"],["price"]]' in client.requests[0].system_prompt
+    with pytest.raises(ValueError, match="unsupported direct prompt version"):
+        DirectLLM(client, "mock", prompt_version="direct-unknown")
 
 
 def test_direct_invalid_output_is_failure_without_tool_repair():

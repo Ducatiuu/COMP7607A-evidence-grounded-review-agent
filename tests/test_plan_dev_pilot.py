@@ -38,6 +38,7 @@ def test_plan_binds_dev_inputs_and_conservative_full_pilot_budget(tmp_path, caps
     assert plan["query_prompt_version"] == "query-v2"
     assert plan["answer_prompt_version"] == "answer-v3"
     assert plan["decision_prompt_version"] == "decision-v3"
+    assert plan["direct_prompt_version"] == "direct-v3"
     assert plan["method_request_bounds"] == {"a": 10, "b": 30, "c": 70}
     assert plan["max_api_requests"] == 170 and plan["declared_worst_case_usd"] == "0.835584"
     assert plan["data_scope"] == "TRAIN_DERIVED_DEV_ONLY" and not plan["candidate_review_complete"]

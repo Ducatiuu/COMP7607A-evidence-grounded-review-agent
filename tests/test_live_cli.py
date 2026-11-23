@@ -38,6 +38,7 @@ def test_dry_run_checks_custom_csv_and_budget_without_key(tmp_path, monkeypatch,
     assert result["query_prompt_version"] == "query-v2"
     assert result["answer_prompt_version"] == "answer-v3"
     assert result["decision_prompt_version"] == "decision-v3"
+    assert result["direct_prompt_version"] == "direct-v3"
     assert result["conservative_requests"] == 5
     assert result["declared_worst_case_usd"] == "0.015"
 
@@ -113,6 +114,7 @@ def test_live_direct_schema_failure_retains_safe_diagnostics_and_usage(tmp_path,
     assert result["actual_requests"] == 1
     assert (result["input_tokens"], result["output_tokens"]) == (10, 5)
     assert result["answer"]["error_code"] == "invalid_direct_answer"
+    assert fixture.requests[0].payload["prompt_version"] == "direct-v3"
     assert result["answer"]["usage"]["diagnostic"]["stage"] == "schema_validation"
     assert "private response text" not in json.dumps(result)
     assert "unexpected private field" not in json.dumps(result)

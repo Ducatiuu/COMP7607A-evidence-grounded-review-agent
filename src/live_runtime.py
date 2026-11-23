@@ -80,6 +80,7 @@ def run_model_method(
     query_prompt_version: str = "query-v1",
     answer_prompt_version: str = "answer-v1",
     decision_prompt_version: str = "decision-v1",
+    direct_prompt_version: str = "direct-v2",
 ) -> ModelRun:
     """Execute one bounded method run on non-demo records; keep B/C setup reusable."""
     if method not in {"a", "b", "c"} or not isinstance(question, str) or not question.strip():
@@ -114,7 +115,8 @@ def run_model_method(
     fingerprint = dataset_fingerprint(records)
     if method == "a":
         query_started = time.perf_counter()
-        answer = DirectLLM(counted, model_id).run(records=records, question=question, question_id=question_id)
+        answer = DirectLLM(counted, model_id, prompt_version=direct_prompt_version).run(
+            records=records, question=question, question_id=question_id)
         answer = answer.model_copy(update={"usage": {**answer.usage,
             "api_requests": counted.requests, "input_tokens": counted.input_tokens,
             "output_tokens": counted.output_tokens,
