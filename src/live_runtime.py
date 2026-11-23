@@ -79,6 +79,7 @@ def run_model_method(
     extraction_prompt_version: str = "extract-v1",
     query_prompt_version: str = "query-v1",
     answer_prompt_version: str = "answer-v1",
+    decision_prompt_version: str = "decision-v1",
 ) -> ModelRun:
     """Execute one bounded method run on non-demo records; keep B/C setup reusable."""
     if method not in {"a", "b", "c"} or not isinstance(question, str) or not question.strip():
@@ -138,7 +139,9 @@ def run_model_method(
     if method == "b":
         answer = FixedWorkflow(parser, finalizer).run(ctx=ctx, question=question, question_id=question_id)
     else:
-        answer = DynamicAgent(parser, counted, finalizer, model_id).run(ctx=ctx, question=question, question_id=question_id)
+        answer = DynamicAgent(parser, counted, finalizer, model_id,
+                              decision_prompt_version=decision_prompt_version).run(
+                                  ctx=ctx, question=question, question_id=question_id)
     usage = {**answer.usage, "api_requests": counted.requests, "extraction_requests": extraction_requests,
              "input_tokens": counted.input_tokens, "output_tokens": counted.output_tokens,
              "query_wall_latency_ms": (time.perf_counter() - query_started) * 1000}

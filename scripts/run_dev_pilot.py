@@ -163,6 +163,7 @@ def run_pilot(plan: dict, *, csv_path: Path, questions_path: Path,
                             extraction_prompt_version=plan["extraction_prompt_version"],
                             query_prompt_version=plan["query_prompt_version"],
                             answer_prompt_version=plan["answer_prompt_version"],
+                            decision_prompt_version=plan["decision_prompt_version"],
                         )
                         row = {"question_id": question.question_id, "method": method,
                                "requests": guarded.requests - before,

@@ -1,8 +1,13 @@
 from collections import deque
+import json
+
+import pytest
 
 from src.controllers import DynamicAgent, QueryParser
+from src.controllers.dynamic_agent import _has_minimum_evidence
 from src.llm_client import LLMRequest, LLMResponse, MockLLMClient
-from src.tools import AnalysisContext
+from src.schemas import QuerySpec
+from src.tools import AnalysisContext, dispatch_tool
 from src.verification import Finalizer
 from test_tools import _dataset
 
@@ -17,11 +22,12 @@ def _answer(negative_count=2):
             "denominator_explanation": "Among three service mentions."}
 
 
-def _agent(decisions, answer=None):
+def _agent(decisions, answer=None, *, decision_prompt_version="decision-v1"):
     parser_client = MockLLMClient(deque([LLMResponse(content=QUERY, model="mock")]))
     answer_client = MockLLMClient(deque([LLMResponse(content=answer or _answer(), model="mock")]))
     decider = MockLLMClient(deque(decisions))
-    agent = DynamicAgent(QueryParser(parser_client, "mock"), decider, Finalizer(answer_client, "mock"), "mock")
+    agent = DynamicAgent(QueryParser(parser_client, "mock"), decider, Finalizer(answer_client, "mock"),
+                         "mock", decision_prompt_version=decision_prompt_version)
     return agent, decider, answer_client
 
 
@@ -81,7 +87,42 @@ def test_invalid_decision_and_timeout_consume_rounds():
     answer = agent.run(ctx=_dataset(), question="What is the negative service rate?")
     assert answer.status == "ok" and answer.usage["decision_rounds"] == 4
     assert len([event for event in answer.tool_trace if event.stage == "decision" and event.status == "invalid"]) == 2
+    invalid = [event for event in answer.tool_trace if event.stage == "decision" and event.status == "invalid"]
+    assert invalid[0].result_summary["stage"] == "schema_validation"
+    assert invalid[1].result_summary == {"stage": "model_request"}
     assert len(decider.requests) == 4
+
+
+def test_decision_v2_prompt_and_safe_schema_diagnostic():
+    bad = LLMResponse(content={"action": "call_tools", "calls": [],
+                               "SECRET_FIELD": "SECRET_OUTPUT"}, model="mock")
+    agent, decider, _ = _agent([bad, _decision("call_tools", [_aggregate_call()]),
+                               _decision("finish")], decision_prompt_version="decision-v2")
+    answer = agent.run(ctx=_dataset(), question="What is the negative service rate?")
+    assert answer.status == "ok"
+    assert decider.requests[0].payload["prompt_version"] == "decision-v2"
+    assert "filter_records" in decider.requests[0].system_prompt
+    diagnostic = answer.tool_trace[0].result_summary
+    assert diagnostic["stage"] == "schema_validation"
+    assert any(issue["path"] == "[unrecognized]" for issue in diagnostic["issues"])
+    assert "SECRET" not in json.dumps(diagnostic)
+    with pytest.raises(ValueError, match="unsupported decision prompt version"):
+        _agent([], decision_prompt_version="decision-unknown")
+
+
+def test_conditional_count_needs_aggregate_on_filtered_scope():
+    ctx = _dataset()
+    query = QuerySpec(task_type="count", conditions=[{"category": "service", "sentiment": "negative"}],
+                      categories=["service"], metric="negative_count")
+    unfiltered = dispatch_tool(ctx, call_id="a1", name="aggregate_aspects", arguments={
+        "categories": ["service"], "metric": "negative_count"})
+    filtered = dispatch_tool(ctx, call_id="f1", name="filter_records", arguments={
+        "conditions": [{"category": "service", "sentiment": "negative"}]})
+    assert not _has_minimum_evidence(query, [unfiltered, filtered])
+    scoped = dispatch_tool(ctx, call_id="a2", name="aggregate_aspects", arguments={
+        "categories": ["service"], "metric": "negative_count",
+        "record_ids": filtered.data["record_ids"]})
+    assert _has_minimum_evidence(query, [unfiltered, filtered, scoped])
 
 
 def test_dynamic_answer_repair_is_separate_from_decision_budget():
