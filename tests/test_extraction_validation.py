@@ -1,6 +1,8 @@
 from collections import deque
 import json
 
+import pytest
+
 from src.absa_service import ExtractionService
 from src.llm_client import LLMResponse, MockLLMClient
 from src.schemas import Record, RecordSet
@@ -93,3 +95,23 @@ def test_malformed_client_response_is_bounded_validation_failure():
     assert [item["category"] for item in run.attempt_diagnostics] == [
         "validation_error", "validation_error"]
     assert "SECRET" not in json.dumps(run.attempt_diagnostics)
+
+
+def test_v2_prompt_explicitly_requires_evidence_array_without_relaxing_schema():
+    record = Record(record_id="R1", text="Tasty food.")
+    client = MockLLMClient(deque([
+        _response("R1", [{"category": "food", "sentiment": "positive",
+                          "evidence": "Tasty food"}]),
+        _response("R1", [{"category": "food", "sentiment": "positive",
+                          "evidence": ["Tasty food"]}]),
+    ]))
+    run = ExtractionService(client=client, provider_model="mock",
+                            prompt_version="extract-v2").extract(RecordSet(records=[record]))
+    assert run.requests == 2 and run.dataset.coverage.success == 1
+    assert run.attempt_diagnostics[0]["category"] == "schema_validation"
+    assert run.attempt_diagnostics[0]["issues"][0] == {
+        "path": "aspects.[index].evidence", "type": "list_type"}
+    assert all("evidence field MUST be a JSON array" in item.system_prompt
+               and item.payload["prompt_version"] == "extract-v2" for item in client.requests)
+    with pytest.raises(ValueError, match="unsupported extraction prompt"):
+        ExtractionService(client=client, provider_model="mock", prompt_version="extract-v999")

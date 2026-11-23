@@ -126,7 +126,8 @@ def run_pilot(plan: dict, *, csv_path: Path, questions_path: Path,
     coverage = None
     try:
         recorder.method = "shared_extraction"
-        extraction = ExtractionService(proxy, provider_model=plan["model"]).extract(records)
+        extraction = ExtractionService(proxy, provider_model=plan["model"],
+                                       prompt_version=plan["extraction_prompt_version"]).extract(records)
         _durable_json(run_dir / "extractions.json", extraction.dataset.model_dump(mode="json"))
         coverage = extraction.dataset.coverage.model_dump(mode="json")
         _append_json(run_dir / "events.jsonl", {"event": "extraction_complete",
@@ -158,6 +159,7 @@ def run_pilot(plan: dict, *, csv_path: Path, questions_path: Path,
                             max_records=plan["record_count"],
                             max_input_chars=plan["max_input_chars"],
                             extraction_dataset=(None if method == "a" else extraction.dataset),
+                            extraction_prompt_version=plan["extraction_prompt_version"],
                         )
                         row = {"question_id": question.question_id, "method": method,
                                "requests": guarded.requests - before,

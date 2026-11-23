@@ -38,6 +38,8 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--price-source", required=True)
         command.add_argument("--price-date", required=True)
         command.add_argument("--timeout-seconds", type=float, default=60)
+        command.add_argument("--extraction-prompt-version", choices=("extract-v1", "extract-v2"),
+                             default="extract-v2")
         command.add_argument("--execute", action="store_true", help="enable real provider network calls")
     ask = subcommands.choices["ask"]
     ask.add_argument("--method", choices="abc", required=True)
@@ -90,6 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         "declared_worst_case_usd": str(plan.worst_case_usd),
         "cost_cap_usd": str(plan.max_cost_usd), "price_source": plan.price_source,
         "price_date": plan.price_date,
+        "extraction_prompt_version": args.extraction_prompt_version,
     }
     if not args.execute:
         print(json.dumps({"mode": "DRY_RUN", **preflight}, ensure_ascii=False, indent=2))
@@ -104,13 +107,15 @@ def main(argv: list[str] | None = None) -> int:
             records, method=args.method, question=question, client=guarded, model_id=args.model,
             max_api_requests=args.max_api_requests, max_records=args.max_records,
             max_input_chars=args.max_input_chars,
+            extraction_prompt_version=args.extraction_prompt_version,
         )
         payload = {"answer": run.answer.model_dump(mode="json"),
                    "extraction_coverage": (run.extraction_dataset.coverage.model_dump(mode="json")
                                            if run.extraction_dataset is not None else None)}
         failed = run.answer.status in {"failed", "partial"}
     else:
-        extraction = ExtractionService(guarded, provider_model=args.model).extract(records)
+        extraction = ExtractionService(guarded, provider_model=args.model,
+                                       prompt_version=args.extraction_prompt_version).extract(records)
         payload = {"coverage": extraction.dataset.coverage.model_dump(mode="json"),
                    "attempt_diagnostics": extraction.attempt_diagnostics,
                    "extractions": [item.model_dump(mode="json") for item in extraction.dataset.extractions]}

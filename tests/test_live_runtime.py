@@ -93,6 +93,12 @@ def test_mismatched_shared_extraction_rejected_before_model_use():
         _run("c", client, extraction_dataset=b.extraction_dataset, records=other)
     with pytest.raises(ValueError, match="Method A"):
         _run("a", client, extraction_dataset=b.extraction_dataset)
+    with pytest.raises(ValueError, match="does not match"):
+        run_model_method(_records(), method="b", question="Count negative service reviews",
+                         client=client, model_id="model-one", max_api_requests=3,
+                         max_records=10, max_input_chars=1000,
+                         extraction_dataset=b.extraction_dataset,
+                         extraction_prompt_version="extract-v2")
     assert client.requests == []
 
 

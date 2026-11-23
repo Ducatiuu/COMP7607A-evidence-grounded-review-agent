@@ -33,6 +33,7 @@ def test_dry_run_checks_custom_csv_and_budget_without_key(tmp_path, monkeypatch,
     assert main(_args(path)) == 0
     result = json.loads(capsys.readouterr().out)
     assert result["mode"] == "DRY_RUN" and result["record_count"] == 1
+    assert result["extraction_prompt_version"] == "extract-v2"
     assert result["conservative_requests"] == 5
     assert result["declared_worst_case_usd"] == "0.015"
 
@@ -70,6 +71,7 @@ def test_execute_path_uses_injected_provider_for_non_demo_csv(tmp_path, monkeypa
     assert result["answer"]["numeric_claims"][0]["value"] == 1
     assert result["extraction_coverage"] == {"total": 1, "success": 1, "failed_ids": []}
     assert [request.stage for request in fixture.requests] == ["extract", "query_parse", "answer"]
+    assert fixture.requests[0].payload["prompt_version"] == "extract-v2"
 
 
 def test_extract_command_reports_model_aspects_without_mock_fixture(tmp_path, monkeypatch, capsys):
@@ -85,6 +87,7 @@ def test_extract_command_reports_model_aspects_without_mock_fixture(tmp_path, mo
     result = json.loads(capsys.readouterr().out)
     assert result["actual_requests"] == 1
     assert result["extractions"][0]["aspects"][0]["evidence"] == ["Slow service"]
+    assert fixture.requests[0].payload["prompt_version"] == "extract-v2"
 
 
 def test_live_direct_schema_failure_retains_safe_diagnostics_and_usage(tmp_path, monkeypatch, capsys):

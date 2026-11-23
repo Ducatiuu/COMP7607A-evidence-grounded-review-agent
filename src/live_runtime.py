@@ -76,6 +76,7 @@ def run_model_method(
     max_records: int, max_input_chars: int,
     question_id: str | None = None,
     extraction_dataset: ExtractionDataset | None = None,
+    extraction_prompt_version: str = "extract-v1",
 ) -> ModelRun:
     """Execute one bounded method run on non-demo records; keep B/C setup reusable."""
     if method not in {"a", "b", "c"} or not isinstance(question, str) or not question.strip():
@@ -92,7 +93,8 @@ def run_model_method(
         raise ValueError("Method A cannot use extraction")
     if extraction_dataset is not None and (extraction_dataset.records != records.records
                                            or extraction_dataset.fingerprint != dataset_fingerprint(records)
-                                           or extraction_dataset.provider_model != model_id):
+                                           or extraction_dataset.provider_model != model_id
+                                           or extraction_dataset.prompt_version != extraction_prompt_version):
         raise ValueError("supplied extraction does not match records or model")
 
     bound = conservative_request_bound(method, len(records.records),
@@ -122,7 +124,8 @@ def run_model_method(
     extraction_wall_ms = None
     if extraction_dataset is None:
         started = time.perf_counter()
-        extraction = ExtractionService(counted, provider_model=model_id).extract(records)
+        extraction = ExtractionService(counted, provider_model=model_id,
+                                       prompt_version=extraction_prompt_version).extract(records)
         extraction_dataset = extraction.dataset
         extraction_requests = extraction.requests
         extraction_wall_ms = (time.perf_counter() - started) * 1000
