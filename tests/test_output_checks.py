@@ -4,10 +4,10 @@ import json
 import pytest
 
 from src.llm_client import LLMResponse, MockLLMClient
-from src.schemas import AnswerPayload, QuerySpec
+from src.schemas import AnswerPayload, QuerySpec, TraceEvent
 from src.tools import dispatch_tool
 from src.verification import Finalizer, check_answer
-from src.verification.output_checks import supported_comparison_groups, supported_numeric_claims
+from src.verification.output_checks import supported_citations, supported_comparison_groups, supported_numeric_claims
 from test_tools import _dataset
 
 
@@ -132,6 +132,47 @@ def test_answer_v4_copies_ranked_groups_from_matching_tool():
         query=query, ctx=ctx, results=[result], trace=[])
     assert answer.status == "ok" and answer.comparison_groups
     assert client.requests[0].payload["supported_comparison_groups"] == groups
+
+
+def test_filter_check_normalizes_omitted_optional_sentiment():
+    ctx = _dataset()
+    arguments = {"conditions": [{"category": "service"}], "operator": "AND"}
+    filtered = dispatch_tool(ctx, call_id="f4", name="filter_records", arguments=arguments)
+    aggregate = dispatch_tool(ctx, call_id="a4", name="aggregate_aspects", arguments={
+        "categories": ["service"], "record_ids": filtered.data["record_ids"],
+        "metric": "negative_rate", "denominator_spec": "aspect_mentions"})
+    query = QuerySpec(task_type="rate", conditions=[{"category": "service"}],
+                      categories=["service"], metric="negative_rate",
+                      denominator_spec="aspect_mentions")
+    trace = [TraceEvent(run_id="run", method="c", stage="analysis_tool", call_id="f4",
+                        status="ok", tool_name="filter_records", arguments=arguments)]
+    answer = AnswerPayload(method="c", status="ok", answer_text="Service rate",
+                           numeric_claims=supported_numeric_claims(query, [aggregate]),
+                           denominator_explanation="Among service mentions.", tool_trace=trace)
+    assert check_answer(answer, ctx, query, [filtered, aggregate]) == []
+    narrower = QuerySpec(task_type="rate", conditions=[{"category": "service", "sentiment": "negative"}],
+                         categories=["service"], metric="negative_rate",
+                         denominator_spec="aspect_mentions")
+    assert "missing_query_filter" in check_answer(answer, ctx, narrower, [filtered, aggregate])
+
+
+def test_answer_v5_supplies_exact_quote_candidates_only_from_evidence_tool():
+    ctx = _dataset()
+    evidence = dispatch_tool(ctx, call_id="e5", name="get_evidence", arguments={
+        "record_ids": ["R01"], "categories": ["service"], "sentiments": ["negative"]})
+    citations = supported_citations([evidence])
+    assert citations and citations[0]["record_id"] == "R01"
+    assert citations[0]["quote"] in ctx.dataset.records[0].text
+    assert supported_citations([]) == []
+    client = MockLLMClient(deque([LLMResponse(content={
+        "status": "ok", "answer_text": "One review supports this.",
+        "citations": citations[:1]}, model="mock")]))
+    query = QuerySpec(task_type="evidence_explanation", categories=["service"], needs_evidence=True)
+    answer = Finalizer(client, "mock", prompt_version="answer-v5").finish(
+        method="c", question="Give supporting service evidence", question_id="Q5",
+        query=query, ctx=ctx, results=[evidence], trace=[])
+    assert answer.status == "ok"
+    assert client.requests[0].payload["supported_citations"] == citations
 
 
 def test_finalizer_fails_after_one_unsuccessful_repair():

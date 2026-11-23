@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from src.llm_client import LLMClient, LLMRequest
 from src.schemas import AnswerPayload, QuerySpec, ToolResult, TraceEvent
 from src.tools import AnalysisContext
-from .output_checks import check_answer, supported_comparison_groups, supported_numeric_claims
+from .output_checks import check_answer, supported_citations, supported_comparison_groups, supported_numeric_claims
 
 
 ANSWER_PROMPT = """Answer the question using only the supplied tool results. Return an
@@ -64,8 +64,18 @@ inner array with a bare string or object, and do not omit lower-ranked groups.
 For non-comparison questions use comparison_groups=[] unless the question
 explicitly asks for a comparison and the matching tool supplied groups."""
 
+ANSWER_PROMPT_V5 = ANSWER_PROMPT_V4 + """
+The payload also contains supported_citations, exact source spans returned by
+get_evidence. If citations are useful, copy only entries from this list, with
+exactly record_id, quote, category and sentiment keys. A citation is shaped
+{"record_id":"R01","quote":"exact source words","category":"service",
+"sentiment":"negative"}. Never replace quote with text, evidence or a paraphrase.
+If the list is empty, return citations=[]. Source review IDs in answer_text
+must come from the tool's all_record_ids or supported_citations."""
+
 _ANSWER_PROMPTS = {"answer-v1": ANSWER_PROMPT, "answer-v2": ANSWER_PROMPT_V2,
-                   "answer-v3": ANSWER_PROMPT_V3, "answer-v4": ANSWER_PROMPT_V4}
+                   "answer-v3": ANSWER_PROMPT_V3, "answer-v4": ANSWER_PROMPT_V4,
+                   "answer-v5": ANSWER_PROMPT_V5}
 
 _SAFE_ANSWER_FIELDS = frozenset({
     "method", "question_id", "status", "answer_text", "numeric_claims", "metric",
@@ -124,9 +134,11 @@ class Finalizer:
                     "query": query.model_dump(mode="json"),
                     "tool_results": [result.model_dump(mode="json") for result in results],
                     **({"supported_numeric_claims": supported_numeric_claims(query, results)}
-                       if self.prompt_version in {"answer-v3", "answer-v4"} else {}),
+                       if self.prompt_version in {"answer-v3", "answer-v4", "answer-v5"} else {}),
                     **({"supported_comparison_groups": supported_comparison_groups(query, results)}
-                       if self.prompt_version == "answer-v4" else {}),
+                       if self.prompt_version in {"answer-v4", "answer-v5"} else {}),
+                    **({"supported_citations": supported_citations(results)}
+                       if self.prompt_version == "answer-v5" else {}),
                     "validation_errors": errors if attempt else [],
                     "prompt_version": self.prompt_version,
                 },

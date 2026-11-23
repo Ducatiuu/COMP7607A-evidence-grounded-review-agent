@@ -43,8 +43,8 @@ def _parser() -> argparse.ArgumentParser:
                              default="extract-v2")
         command.add_argument("--query-prompt-version", choices=("query-v1", "query-v2", "query-v3"),
                              default="query-v3")
-        command.add_argument("--answer-prompt-version", choices=("answer-v1", "answer-v2", "answer-v3", "answer-v4"),
-                             default="answer-v4")
+        command.add_argument("--answer-prompt-version", choices=("answer-v1", "answer-v2", "answer-v3", "answer-v4", "answer-v5"),
+                             default="answer-v5")
         command.add_argument("--decision-prompt-version", choices=("decision-v1", "decision-v2", "decision-v3"),
                              default="decision-v3")
         command.add_argument("--direct-prompt-version", choices=("direct-v2", "direct-v3"),

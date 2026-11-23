@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from src.schemas import AnswerPayload, QuerySpec, ToolResult
+from src.schemas import AnswerPayload, Predicate, QuerySpec, ToolResult
 from src.tools import AnalysisContext
 
 
@@ -74,6 +74,40 @@ def supported_comparison_groups(query: QuerySpec, results: list[ToolResult]) -> 
     return []
 
 
+def supported_citations(results: list[ToolResult]) -> list[dict]:
+    """Return exact source spans supplied by the trusted evidence tool."""
+    candidates: list[dict] = []
+    seen: set[tuple[str, str, str, str]] = set()
+    for result in results:
+        if result.tool_name != "get_evidence" or result.status == "failed" or result.data is None:
+            continue
+        for example in result.data["examples"]:
+            for aspect in example["aspects"]:
+                for quote in aspect["evidence"]:
+                    if quote not in example["text"]:
+                        continue
+                    key = (example["record_id"], quote, aspect["category"], aspect["sentiment"])
+                    if key not in seen:
+                        seen.add(key)
+                        candidates.append({"record_id": key[0], "quote": key[1],
+                                           "category": key[2], "sentiment": key[3]})
+    return candidates
+
+
+def _filter_matches_query(arguments: dict | None, query: QuerySpec) -> bool:
+    if not isinstance(arguments, dict) or arguments.get("record_ids") is not None:
+        return False
+    if arguments.get("operator", "AND") != (query.operator or "AND"):
+        return False
+    try:
+        actual = [Predicate.model_validate(item).model_dump(mode="json")
+                  for item in arguments.get("conditions", [])]
+    except (ValueError, TypeError):
+        return False
+    expected = [condition.model_dump(mode="json") for condition in query.conditions]
+    return actual == expected
+
+
 def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, results: list[ToolResult]) -> list[str]:
     errors: list[str] = []
     if answer.status == "ok" and any(result.status == "partial" for result in results):
@@ -94,8 +128,7 @@ def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, 
         if result.tool_name == "filter_records" and query.conditions:
             event = trace_by_call.get(result.call_id)
             arguments = event.arguments if event is not None else None
-            intended = [condition.model_dump(mode="json") for condition in query.conditions]
-            if arguments and arguments.get("conditions") == intended and arguments.get("operator", "AND") == (query.operator or "AND") and arguments.get("record_ids") is None:
+            if _filter_matches_query(arguments, query):
                 filter_ids = result.data["record_ids"]
         if result.tool_name == "compare_aspects" and {stat["category"] for stat in result.data["stats"]} == {category.value for category in query.categories}:
             comparison_groups = [group["categories"] for group in result.data["groups"]]
