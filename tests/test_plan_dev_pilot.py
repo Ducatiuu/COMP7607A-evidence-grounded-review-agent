@@ -32,7 +32,7 @@ def test_plan_binds_dev_inputs_and_conservative_full_pilot_budget(tmp_path, caps
     plan = build_plan(**kwargs)
     assert (plan["status"], plan["network_calls_made"], plan["record_count"], plan["question_count"]) == (
         "DRY_RUN_APPROVAL_REQUIRED", 0, 30, 10)
-    assert not plan["execution_runner_ready"]
+    assert plan["execution_runner_ready"]
     assert plan["shared_extraction_request_bound"] == 60
     assert plan["method_request_bounds"] == {"a": 10, "b": 30, "c": 70}
     assert plan["max_api_requests"] == 170 and plan["declared_worst_case_usd"] == "0.835584"
