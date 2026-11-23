@@ -90,3 +90,49 @@ def test_evidence_completion_checks_real_source_quote_and_summary_equal_weights(
     ])
     assert summary["per_type_success"] == {"count": 0.5, "rate": 1.0}
     assert summary["equal_type_average"] == 0.75 and summary["false_refusals"] == 1
+
+
+def test_bounded_metric_aliases_accept_clear_paraphrases_without_changing_strict_score():
+    count = GoldReference(question_id="Q1", task_type="count", count=2)
+    answer = AnswerPayload(method="a", question_id="Q1", status="ok", answer_text="2",
+                           numeric_claims=[{"metric": "records with a negative opinion about service",
+                                            "category": "service", "value": 2}])
+    assert score_answer(answer, count)["primary_success"] is False
+    assert score_answer(answer, count, metric_rubric="bounded_aliases_v1")["primary_success"] is True
+    rate = GoldReference(question_id="Q2", task_type="rate", numerator=1, denominator=4, rate=0.25)
+    answer = AnswerPayload(method="a", question_id="Q2", status="ok", answer_text="25%",
+                           numeric_claims=[{"metric": "fraction negative among service-mentioning reviews",
+                                            "category": "service", "value": 0.25,
+                                            "numerator": 1, "denominator": 4}],
+                           denominator_explanation="One of four service mentions is negative.")
+    assert score_answer(answer, rate)["primary_success"] is False
+    assert score_answer(answer, rate, metric_rubric="bounded_aliases_v1")["primary_success"] is True
+    answer.numeric_claims[0].metric = "negative service count rate"
+    assert score_answer(answer, rate, metric_rubric="bounded_aliases_v1")["primary_success"] is False
+
+
+def test_bounded_metric_aliases_reject_wrong_semantics_and_ambiguous_duplicates():
+    reference = GoldReference(question_id="Q", task_type="count", count=2)
+    for label in ("positive service reviews", "negative food reviews", "negative service rate",
+                  "total service reviews", "not negative service reviews", "positive and negative service reviews"):
+        answer = AnswerPayload(method="a", question_id="Q", status="ok", answer_text="2",
+                               numeric_claims=[{"metric": label, "category": "service", "value": 2}])
+        assert score_answer(answer, reference, metric_rubric="bounded_aliases_v1")["primary_success"] is False
+    answer = AnswerPayload(method="a", question_id="Q", status="ok", answer_text="2",
+                           numeric_claims=[{"metric": "negative service reviews", "category": "service", "value": 2},
+                                           {"metric": "negative service record count", "category": "service", "value": 2}])
+    assert score_answer(answer, reference, metric_rubric="bounded_aliases_v1")["primary_success"] is False
+
+
+def test_bounded_metric_aliases_apply_to_ranked_counts_and_preserve_tie_requirement():
+    reference = GoldReference(question_id="Q", task_type="comparison",
+                              comparison_groups=[["food", "service"]],
+                              category_counts={"food": 1, "service": 1})
+    answer = AnswerPayload(method="a", question_id="Q", status="ok", answer_text="tie",
+                           comparison_groups=[["food", "service"]],
+                           numeric_claims=[{"metric": "negative food reviews", "category": "food", "value": 1},
+                                           {"metric": "negative review count", "category": "service", "value": 1}])
+    assert score_answer(answer, reference)["primary_success"] is False
+    assert score_answer(answer, reference, metric_rubric="bounded_aliases_v1")["primary_success"] is True
+    answer.comparison_groups = [["food"], ["service"]]
+    assert score_answer(answer, reference, metric_rubric="bounded_aliases_v1")["primary_success"] is False

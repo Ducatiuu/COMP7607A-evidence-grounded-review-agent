@@ -135,6 +135,7 @@ def score_pilot(*, plan_path: Path, run_dir: Path, manifest_path: Path,
         raise ValueError("result rows are missing, duplicated or reordered")
     ref_by_id = {item.question_id: item for item in references}
     scores_by_method: dict[str, list[dict]] = {method: [] for method in ("a", "b", "c")}
+    alias_scores_by_method: dict[str, list[dict]] = {method: [] for method in ("a", "b", "c")}
     noncanonical_metric_rows: dict[str, list[str]] = {method: [] for method in ("a", "b", "c")}
     request_sum = 0
     for row in rows:
@@ -154,6 +155,9 @@ def score_pilot(*, plan_path: Path, run_dir: Path, manifest_path: Path,
                 and answer.numeric_claims):
             noncanonical_metric_rows[row["method"]].append(row["question_id"])
         scores_by_method[row["method"]].append(score_answer(answer, ref_by_id[row["question_id"]], records))
+        alias_scores_by_method[row["method"]].append(score_answer(
+            answer, ref_by_id[row["question_id"]], records,
+            metric_rubric="bounded_aliases_v1"))
     if calls - request_sum not in {plan["record_count"], 2 * plan["record_count"]}:
         raise ValueError("shared extraction request count is implausible")
     expected_contexts = Counter({("shared_extraction", None): calls - request_sum})
@@ -169,6 +173,7 @@ def score_pilot(*, plan_path: Path, run_dir: Path, manifest_path: Path,
         "human_evidence_review_complete": False,
         "formal_test_scored": False,
         "scoring_basis": "strict structured fields against unreviewed candidate references; exact quote and source ID checks do not establish semantic relevance",
+        "additional_metric_rubric": "bounded_aliases_v1: clear negative count/rate paraphrases with matching category; rejects ambiguous duplicates",
         "scoring_limitations": ["A free-form metric names can fail the strict structured scorer even when a numeric value matches; inspect flagged rows manually before comparing methods",
                                 "candidate references and evidence relevance require independent human review"],
         "plan_sha256": plan["plan_sha256"],
@@ -186,6 +191,9 @@ def score_pilot(*, plan_path: Path, run_dir: Path, manifest_path: Path,
                              "noncanonical_metric_rows": noncanonical_metric_rows[method],
                              "question_scores": scores}
                     for method, scores in scores_by_method.items()},
+        "methods_bounded_aliases_v1": {
+            method: {"summary": summarize_question_scores(scores), "question_scores": scores}
+            for method, scores in alias_scores_by_method.items()},
     }
 
 
@@ -214,6 +222,9 @@ def main(argv: list[str] | None = None) -> int:
                       "strict_primary_success": {
                           method: sum(item["primary_success"] for item in group["question_scores"])
                           for method, group in report["methods"].items()},
+                      "bounded_alias_primary_success": {
+                          method: sum(item["primary_success"] for item in group["question_scores"])
+                          for method, group in report["methods_bounded_aliases_v1"].items()},
                       "questions_per_method": len(report["methods"]["a"]["question_scores"])},
                      ensure_ascii=False))
     return 0

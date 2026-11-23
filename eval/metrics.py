@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from dataclasses import dataclass
-
 from typing import Literal
 
 from pydantic import Field, model_validator
@@ -103,16 +103,46 @@ def conditioned_sentiment_scores(predictions: list[ConditionedPrediction], gold:
             "by_sentiment": by_class, "expected_pairs": len(gold_map), "received_pairs": len(prediction_map)}
 
 
-def _matching_claim(answer: AnswerPayload, metric: str, category: str | None):
-    return next((claim for claim in answer.numeric_claims if claim.metric == metric and (claim.category.value if claim.category else None) == category), None)
+_COUNT_WORDS = {"count", "counts", "review", "reviews", "record", "records"}
+_RATE_WORDS = {"rate", "fraction", "proportion", "percentage", "percent"}
+_CATEGORY_WORDS = {"food", "service", "price", "ambience"}
 
 
-def _counts_correct(answer: AnswerPayload, reference: GoldReference) -> bool:
-    return all((claim := _matching_claim(answer, "negative_count", category.value)) is not None and claim.value == count
+def _metric_label_matches(label: str, metric: str, category: str | None, *, rubric: str) -> bool:
+    if label == metric:
+        return True
+    if rubric == "strict" or category is None:
+        return False
+    words = set(re.findall(r"[a-z]+", label.casefold()))
+    mentioned_categories = words & _CATEGORY_WORDS
+    if mentioned_categories and mentioned_categories != {category}:
+        return False
+    if "negative" not in words or words & {"positive", "neutral", "conflict", "total", "not", "no", "non", "without"}:
+        return False
+    if metric == "negative_count":
+        return bool(words & _COUNT_WORDS) and not bool(words & _RATE_WORDS)
+    if metric == "negative_rate":
+        return bool(words & _RATE_WORDS) and not bool(words & {"count", "counts"})
+    return False
+
+
+def _matching_claim(answer: AnswerPayload, metric: str, category: str | None, *, rubric: str):
+    matches = [claim for claim in answer.numeric_claims
+               if (claim.category.value if claim.category else None) == category
+               and _metric_label_matches(claim.metric, metric, category, rubric=rubric)]
+    # The bounded alias rubric does not choose a favorable claim among duplicates.
+    return matches[0] if matches and (rubric == "strict" or len(matches) == 1) else None
+
+
+def _counts_correct(answer: AnswerPayload, reference: GoldReference, *, rubric: str) -> bool:
+    return all((claim := _matching_claim(answer, "negative_count", category.value, rubric=rubric)) is not None and claim.value == count
                for category, count in reference.category_counts.items())
 
 
-def score_answer(answer: AnswerPayload, reference: GoldReference, records: list[Record] | None = None) -> dict:
+def score_answer(answer: AnswerPayload, reference: GoldReference, records: list[Record] | None = None,
+                 *, metric_rubric: Literal["strict", "bounded_aliases_v1"] = "strict") -> dict:
+    if metric_rubric not in {"strict", "bounded_aliases_v1"}:
+        raise ValueError("unknown metric-label rubric")
     if answer.question_id != reference.question_id:
         raise ValueError("question ID mismatch")
     complete = answer.status == "ok"
@@ -132,11 +162,11 @@ def score_answer(answer: AnswerPayload, reference: GoldReference, records: list[
         result["primary_success"] = complete and predicted == gold
         return result
     if reference.task_type == "count":
-        claim = _matching_claim(answer, "negative_count", "service")
+        claim = _matching_claim(answer, "negative_count", "service", rubric=metric_rubric)
         result["primary_success"] = complete and claim is not None and claim.value == reference.count
         return result
     if reference.task_type == "rate":
-        claim = _matching_claim(answer, "negative_rate", "service")
+        claim = _matching_claim(answer, "negative_rate", "service", rubric=metric_rubric)
         result["rate_undefined"] = reference.rate is None
         if claim is None:
             return result
@@ -145,7 +175,7 @@ def score_answer(answer: AnswerPayload, reference: GoldReference, records: list[
         return result
     if reference.task_type in {"comparison", "evidence_explanation"}:
         groups_ok = answer.comparison_groups == reference.comparison_groups
-        counts_ok = _counts_correct(answer, reference)
+        counts_ok = _counts_correct(answer, reference, rubric=metric_rubric)
         evidence_ok = True
         if reference.task_type == "evidence_explanation":
             record_by_id = {record.record_id: record for record in records or []}
