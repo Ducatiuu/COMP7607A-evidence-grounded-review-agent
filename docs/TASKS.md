@@ -26,6 +26,7 @@ The user's request authorizes local autonomous development. GitHub publication, 
 | P5-METRICS | ABSA and QA evaluation metrics | P5-QUESTIONS | F1, exact, undefined, tie, false refusal and failure tests | PASS (offline) | NOT AUTHORIZED |
 | P5-HUMAN | Question/reference/challenge/evidence human review | P5-QUESTIONS | Two independent reviewers and adjudication as specified | PENDING HUMAN WORK | NOT AUTHORIZED |
 | P5-QUESTION-REVIEW-SHEETS | Export two blank, hash-bound local question/reference review sheets | P5-REALDATA, P5-BOUNDARY-CODE | 120 rows each, no reviewer judgments, no overwrite, Gold kept local | PASS (blank export); human judgments pending | LOCAL ONLY |
+| P5-QUESTION-REVIEW-AUDIT | Audit two independently filled question/reference sheets without freezing | P5-QUESTION-REVIEW-SHEETS | Hash-bound immutable rows, distinct reviewer IDs, complete yes/no judgments, disagreement/rejection counts, no fabricated approval | PASS (offline; actual sheets pending human input) | LOCAL ONLY |
 | P5-REALDATA | Licensed SemEval acquisition and actual candidate manifests | P5-XML, P5-SPLIT | Authorized local files, hashes, distributions, overlap audit | PASS (real candidate audit); human freeze pending | LOCAL ONLY |
 | P5-RUNNER | Resumable offline experiment runner | P3-B, P4-C, P5-METRICS | Failure retention, MOCK dry-run and config-safe resume | PASS (synthetic demo) | NOT AUTHORIZED |
 | P6-STATE | Local UI state and refresh restore | P1-LOAD | UUID-scoped ignored storage, validation, clear and refresh tests | PASS (local) | NOT AUTHORIZED |

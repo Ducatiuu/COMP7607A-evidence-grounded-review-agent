@@ -32,6 +32,8 @@ The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path,
 
 `python -m scripts.prepare_dev_pilot` prepares a local, unreviewed candidate for a later development pilot. It selects 30 records from `data/processed/dev.csv` with a fixed seed, writes ten questions and a runtime CSV under ignored `data/processed/dev_pilot/`, and keeps the independent Gold references under ignored `data/gold/dev_pilot/`. It never calls a model or reads formal test records. The generated manifest records source and output hashes; existing files are not overwritten. Review the candidate before requesting a separately approved live pilot.
 
+`python -m scripts.audit_question_review` checks the two local 120-question review sheets for missing judgments, changed source fields, reported reviewer IDs and disagreements. It never supplies human judgments or freezes the formal question set.
+
 ## Offline CLI (synthetic fixture)
 
 The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.

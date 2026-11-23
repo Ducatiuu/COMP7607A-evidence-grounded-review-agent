@@ -1,6 +1,6 @@
 # Offline experiment preparation
 
-The local preparation commands now also run on the user-supplied licensed SemEval XML, producing candidate files under ignored paths. `MOCK` outputs verify software flow, not research results. Human question/reference review, adjudicated challenge labels, a working provider key and separately approved real-run scope are still absent.
+The local preparation commands now also run on the user-supplied licensed SemEval XML, producing candidate files under ignored paths. `MOCK` outputs verify software flow, not research results. A DeepSeek key was verified and one scoped synthetic request received a response but failed answer validation. Human question/reference review, adjudicated challenge labels, a successful live pilot and separately approved real-run scope are still absent.
 
 For a target-size, wholly synthetic data-preparation smoke test, run `python -m scripts.synthetic_protocol_smoke --out outputs/synthetic_protocol`. It generates 3,041/800 synthetic XML sentences and exercises the 150/600 split, 20 packs, 120 candidate questions, subset manifest and boundary audit. Its `SYNTHETIC_TEST_ONLY` counts must never be reported as SemEval statistics.
 
