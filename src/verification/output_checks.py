@@ -40,6 +40,27 @@ def _supported_claims(results: list[ToolResult]) -> list[dict]:
     return supported
 
 
+def supported_numeric_claims(query: QuerySpec, results: list[ToolResult]) -> list[dict]:
+    """Return model-ready claims for the requested metric, copied from tools."""
+    if query.metric is None:
+        return []
+    targets = {category.value for category in query.categories}
+    claims: list[dict] = []
+    for item in _supported_claims(results):
+        if item["metric"] != query.metric:
+            continue
+        if query.metric == "distinct_record_count":
+            if item["category"] is not None:
+                continue
+        elif targets and item["category"] not in targets:
+            continue
+        if query.metric == "negative_rate" and item["denominator_spec"] != query.denominator_spec:
+            continue
+        claims.append({key: item[key] for key in
+                       ("metric", "category", "scope_ids", "value", "numerator", "denominator")})
+    return claims
+
+
 def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, results: list[ToolResult]) -> list[str]:
     errors: list[str] = []
     if answer.status == "ok" and any(result.status == "partial" for result in results):

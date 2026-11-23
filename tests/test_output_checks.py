@@ -7,6 +7,7 @@ from src.llm_client import LLMResponse, MockLLMClient
 from src.schemas import AnswerPayload, QuerySpec
 from src.tools import dispatch_tool
 from src.verification import Finalizer, check_answer
+from src.verification.output_checks import supported_numeric_claims
 from test_tools import _dataset
 
 
@@ -75,6 +76,39 @@ def test_answer_v2_prompt_contract_and_unsupported_version():
     assert "numeric_claims" in request.system_prompt and "scope_ids" in request.system_prompt
     with pytest.raises(ValueError, match="unsupported answer prompt version"):
         Finalizer(client, "mock", prompt_version="answer-unknown")
+
+
+def test_answer_v3_supplies_only_tool_supported_target_claims():
+    ctx, result, query = _rate_context()
+    candidates = supported_numeric_claims(query, [result])
+    assert candidates == [{"metric": "negative_rate", "category": "service",
+                           "scope_ids": ["R01", "R02", "R03", "R04"], "value": 2 / 3,
+                           "numerator": 2, "denominator": 3}]
+    wrong_denominator = QuerySpec(task_type="rate", categories=["service"],
+                                  metric="negative_rate", denominator_spec="all_records")
+    assert supported_numeric_claims(wrong_denominator, [result]) == []
+    client = MockLLMClient(deque([LLMResponse(content=_answer(), model="mock")]))
+    answer = Finalizer(client, "mock", prompt_version="answer-v3").finish(
+        method="b", question="Service negative rate?", question_id="Q1",
+        query=query, ctx=ctx, results=[result], trace=[])
+    assert answer.status == "ok"
+    assert client.requests[0].payload["supported_numeric_claims"] == candidates
+    assert "supported_numeric_claims" in client.requests[0].system_prompt
+
+
+def test_supported_numeric_claim_preserves_empty_filtered_scope():
+    ctx = _dataset()
+    filtered = dispatch_tool(ctx, call_id="f0", name="filter_records", arguments={
+        "conditions": [{"category": "service", "sentiment": "conflict"}]})
+    assert filtered.data["record_ids"] == []
+    aggregate = dispatch_tool(ctx, call_id="a0", name="aggregate_aspects", arguments={
+        "categories": ["service"], "record_ids": filtered.data["record_ids"],
+        "metric": "negative_count"})
+    query = QuerySpec(task_type="count", conditions=[{"category": "service", "sentiment": "conflict"}],
+                      categories=["service"], metric="negative_count")
+    assert supported_numeric_claims(query, [filtered, aggregate]) == [{
+        "metric": "negative_count", "category": "service", "scope_ids": [],
+        "value": 0, "numerator": None, "denominator": None}]
 
 
 def test_finalizer_fails_after_one_unsuccessful_repair():
