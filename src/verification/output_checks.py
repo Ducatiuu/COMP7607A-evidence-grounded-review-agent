@@ -61,6 +61,19 @@ def supported_numeric_claims(query: QuerySpec, results: list[ToolResult]) -> lis
     return claims
 
 
+def supported_comparison_groups(query: QuerySpec, results: list[ToolResult]) -> list[list[str]]:
+    """Return complete ranked tie groups only from a matching comparison tool."""
+    targets = {category.value for category in query.categories}
+    if len(targets) < 2:
+        return []
+    for result in reversed(results):
+        if (result.tool_name == "compare_aspects" and result.status in {"ok", "partial"}
+                and result.data is not None
+                and {stat["category"] for stat in result.data["stats"]} == targets):
+            return [group["categories"] for group in result.data["groups"]]
+    return []
+
+
 def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, results: list[ToolResult]) -> list[str]:
     errors: list[str] = []
     if answer.status == "ok" and any(result.status == "partial" for result in results):

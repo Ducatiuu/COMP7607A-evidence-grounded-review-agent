@@ -81,3 +81,13 @@ def test_v2_query_prompt_names_exact_metric_values_and_rejects_unknown_version()
     assert "Do not add" in request.system_prompt
     with pytest.raises(ValueError, match="unsupported query prompt"):
         QueryParser(client=client, provider_model="mock", prompt_version="query-v999")
+
+
+def test_v3_query_prompt_separates_comparison_from_filters_and_missing_date():
+    client = _client({"task_type": "insufficient_info", "metadata_required": ["date"]})
+    outcome = QueryParser(client, "mock", prompt_version="query-v3").parse(
+        "How did negative service reviews change by month?")
+    assert outcome.status == "unavailable_metadata" and outcome.missing_metadata == ("date",)
+    prompt = client.requests[0].system_prompt
+    assert "Do not turn the compared categories into AND/OR conditions" in prompt
+    assert "month, trend" in prompt

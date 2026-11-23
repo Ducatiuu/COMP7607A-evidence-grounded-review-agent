@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from src.llm_client import LLMClient, LLMRequest
 from src.schemas import AnswerPayload, QuerySpec, ToolResult, TraceEvent
 from src.tools import AnalysisContext
-from .output_checks import check_answer, supported_numeric_claims
+from .output_checks import check_answer, supported_comparison_groups, supported_numeric_claims
 
 
 ANSWER_PROMPT = """Answer the question using only the supplied tool results. Return an
@@ -55,8 +55,17 @@ and means no records matched the filter. Do not use the source pack's IDs or
 invent alternate numbers for a filtered query. If the list is empty when a
 claim is required, do not claim a supported numeric answer."""
 
+ANSWER_PROMPT_V4 = ANSWER_PROMPT_V3 + """
+The payload also contains supported_comparison_groups, the complete ranked tie
+groups copied from compare_aspects when available. For a comparison, copy this
+value exactly into comparison_groups. It is a JSON array of JSON arrays of
+category strings, such as [["food","service"],["price"]]. Never replace an
+inner array with a bare string or object, and do not omit lower-ranked groups.
+For non-comparison questions use comparison_groups=[] unless the question
+explicitly asks for a comparison and the matching tool supplied groups."""
+
 _ANSWER_PROMPTS = {"answer-v1": ANSWER_PROMPT, "answer-v2": ANSWER_PROMPT_V2,
-                   "answer-v3": ANSWER_PROMPT_V3}
+                   "answer-v3": ANSWER_PROMPT_V3, "answer-v4": ANSWER_PROMPT_V4}
 
 _SAFE_ANSWER_FIELDS = frozenset({
     "method", "question_id", "status", "answer_text", "numeric_claims", "metric",
@@ -115,7 +124,9 @@ class Finalizer:
                     "query": query.model_dump(mode="json"),
                     "tool_results": [result.model_dump(mode="json") for result in results],
                     **({"supported_numeric_claims": supported_numeric_claims(query, results)}
-                       if self.prompt_version == "answer-v3" else {}),
+                       if self.prompt_version in {"answer-v3", "answer-v4"} else {}),
+                    **({"supported_comparison_groups": supported_comparison_groups(query, results)}
+                       if self.prompt_version == "answer-v4" else {}),
                     "validation_errors": errors if attempt else [],
                     "prompt_version": self.prompt_version,
                 },

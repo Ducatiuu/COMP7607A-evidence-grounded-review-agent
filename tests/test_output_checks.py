@@ -7,7 +7,7 @@ from src.llm_client import LLMResponse, MockLLMClient
 from src.schemas import AnswerPayload, QuerySpec
 from src.tools import dispatch_tool
 from src.verification import Finalizer, check_answer
-from src.verification.output_checks import supported_numeric_claims
+from src.verification.output_checks import supported_comparison_groups, supported_numeric_claims
 from test_tools import _dataset
 
 
@@ -109,6 +109,29 @@ def test_supported_numeric_claim_preserves_empty_filtered_scope():
     assert supported_numeric_claims(query, [filtered, aggregate]) == [{
         "metric": "negative_count", "category": "service", "scope_ids": [],
         "value": 0, "numerator": None, "denominator": None}]
+
+
+def test_answer_v4_copies_ranked_groups_from_matching_tool():
+    ctx = _dataset()
+    query = QuerySpec(task_type="comparison", categories=["food", "service"],
+                      metric="negative_count")
+    result = dispatch_tool(ctx, call_id="c4", name="compare_aspects", arguments={
+        "categories": ["food", "service"], "metric": "negative_count"})
+    groups = supported_comparison_groups(query, [result])
+    assert groups == [group["categories"] for group in result.data["groups"]]
+    assert all(isinstance(group, list) for group in groups)
+    wrong = QuerySpec(task_type="comparison", categories=["food", "price"],
+                      metric="negative_count")
+    assert supported_comparison_groups(wrong, [result]) == []
+    answer_content = {"status": "ok", "answer_text": "Ranked categories.",
+                      "comparison_groups": groups,
+                      "numeric_claims": supported_numeric_claims(query, [result])}
+    client = MockLLMClient(deque([LLMResponse(content=answer_content, model="mock")]))
+    answer = Finalizer(client, "mock", prompt_version="answer-v4").finish(
+        method="b", question="Rank food and service", question_id="Q4",
+        query=query, ctx=ctx, results=[result], trace=[])
+    assert answer.status == "ok" and answer.comparison_groups
+    assert client.requests[0].payload["supported_comparison_groups"] == groups
 
 
 def test_finalizer_fails_after_one_unsuccessful_repair():
