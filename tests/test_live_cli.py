@@ -36,6 +36,7 @@ def test_dry_run_checks_custom_csv_and_budget_without_key(tmp_path, monkeypatch,
     assert result["mode"] == "DRY_RUN" and result["record_count"] == 1
     assert result["extraction_prompt_version"] == "extract-v2"
     assert result["query_prompt_version"] == "query-v2"
+    assert result["answer_prompt_version"] == "answer-v2"
     assert result["conservative_requests"] == 5
     assert result["declared_worst_case_usd"] == "0.015"
 
@@ -75,6 +76,7 @@ def test_execute_path_uses_injected_provider_for_non_demo_csv(tmp_path, monkeypa
     assert [request.stage for request in fixture.requests] == ["extract", "query_parse", "answer"]
     assert fixture.requests[0].payload["prompt_version"] == "extract-v2"
     assert fixture.requests[1].payload["prompt_version"] == "query-v2"
+    assert fixture.requests[2].payload["prompt_version"] == "answer-v2"
 
 
 def test_extract_command_reports_model_aspects_without_mock_fixture(tmp_path, monkeypatch, capsys):

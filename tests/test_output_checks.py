@@ -1,6 +1,8 @@
 from collections import deque
 import json
 
+import pytest
+
 from src.llm_client import LLMResponse, MockLLMClient
 from src.schemas import AnswerPayload, QuerySpec
 from src.tools import dispatch_tool
@@ -58,6 +60,21 @@ def test_finalizer_repairs_once_using_real_tool_result():
     assert client.requests[1].payload["validation_errors"] == ["unsupported_numeric_claim"]
     assert answer.usage["attempt_diagnostics"] == [
         {"attempt": 1, "stage": "output_checks", "codes": ["unsupported_numeric_claim"]}]
+
+
+def test_answer_v2_prompt_contract_and_unsupported_version():
+    ctx, result, query = _rate_context()
+    client = MockLLMClient(deque([LLMResponse(content=_answer(), model="mock")]))
+    answer = Finalizer(client, "mock", prompt_version="answer-v2").finish(
+        method="b", question="Service negative rate?", question_id="Q1",
+        query=query, ctx=ctx, results=[result], trace=[])
+    assert answer.status == "ok"
+    request = client.requests[0]
+    assert request.payload["prompt_version"] == "answer-v2"
+    assert "status" in request.system_prompt and "answer_text" in request.system_prompt
+    assert "numeric_claims" in request.system_prompt and "scope_ids" in request.system_prompt
+    with pytest.raises(ValueError, match="unsupported answer prompt version"):
+        Finalizer(client, "mock", prompt_version="answer-unknown")
 
 
 def test_finalizer_fails_after_one_unsuccessful_repair():

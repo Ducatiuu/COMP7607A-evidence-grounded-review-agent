@@ -78,6 +78,7 @@ def run_model_method(
     extraction_dataset: ExtractionDataset | None = None,
     extraction_prompt_version: str = "extract-v1",
     query_prompt_version: str = "query-v1",
+    answer_prompt_version: str = "answer-v1",
 ) -> ModelRun:
     """Execute one bounded method run on non-demo records; keep B/C setup reusable."""
     if method not in {"a", "b", "c"} or not isinstance(question, str) or not question.strip():
@@ -133,7 +134,7 @@ def run_model_method(
     query_started = time.perf_counter()
     ctx = AnalysisContext(extraction_dataset)
     parser = QueryParser(counted, model_id, prompt_version=query_prompt_version)
-    finalizer = Finalizer(counted, model_id)
+    finalizer = Finalizer(counted, model_id, prompt_version=answer_prompt_version)
     if method == "b":
         answer = FixedWorkflow(parser, finalizer).run(ctx=ctx, question=question, question_id=question_id)
     else:
