@@ -1,4 +1,4 @@
-"""Read-only preflight for a separately approved Train-derived A/B/C pilot."""
+"""Read-only preflight for a bounded Train-derived A/B/C development pilot."""
 
 from __future__ import annotations
 

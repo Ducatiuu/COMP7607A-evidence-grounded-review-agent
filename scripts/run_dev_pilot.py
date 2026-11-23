@@ -218,8 +218,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--references", default="data/gold/dev_pilot/references.json")
     parser.add_argument("--split", default="data/processed/candidate_split.json")
     parser.add_argument("--execute", action="store_true")
-    parser.add_argument("--approved-plan-sha256",
-                        help="exact plan fingerprint separately approved for live execution")
+    parser.add_argument("--plan-sha256", "--approved-plan-sha256", dest="plan_sha256",
+                        help="exact preflight fingerprint binding this one-shot run")
     args = parser.parse_args(argv)
     try:
         plan = checked_plan(Path(args.plan), manifest_path=Path(args.manifest),
@@ -230,8 +230,8 @@ def main(argv: list[str] | None = None) -> int:
                               "plan_sha256": plan["plan_sha256"],
                               "request_ceiling": plan["max_api_requests"]}))
             return 0
-        if args.approved_plan_sha256 != plan["plan_sha256"]:
-            raise ValueError("live execution requires the exact approved plan fingerprint")
+        if args.plan_sha256 != plan["plan_sha256"]:
+            raise ValueError("live execution requires the exact plan fingerprint")
         if not os.environ.get("DEEPSEEK_API_KEY"):
             raise ValueError("DEEPSEEK_API_KEY is unavailable")
         require_dev_run_balance(plan["max_cost_usd"])

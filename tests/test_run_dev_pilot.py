@@ -63,6 +63,7 @@ def test_dry_run_rechecks_hashes_and_never_uses_provider(tmp_path, capsys, monke
     assert not (tmp_path / "live_run").exists()
     assert checked_plan(plan_path, **paths) == plan
     assert main([*args, "--execute"]) == 2
+    assert main([*args, "--execute", "--plan-sha256", "wrong"]) == 2
     assert not (tmp_path / "live_run").exists()
     capsys.readouterr()
     paths["references_path"].write_text("[]", encoding="utf-8")
