@@ -1,4 +1,5 @@
 from collections import deque
+import json
 
 from src.controllers import DirectLLM
 from src.llm_client import LLMResponse, MockLLMClient
@@ -18,7 +19,33 @@ def test_direct_method_receives_complete_raw_pack_only():
 
 
 def test_direct_invalid_output_is_failure_without_tool_repair():
-    client = MockLLMClient(deque([LLMResponse(content={"status": "ok", "answer_text": "bad", "numeric_claims": [{"metric": "x", "value": "many"}]}, model="mock")]))
+    client = MockLLMClient(deque([LLMResponse(content={"status": "ok", "answer_text": "bad", "numeric_claims": [{"metric": "x", "value": "many"}], "private model key": "secret review text"}, model="mock", input_tokens=12, output_tokens=7)]))
     answer = DirectLLM(client, "mock").run(records=RecordSet(records=_dataset().dataset.records), question="How many?")
     assert answer.status == "failed" and answer.error_code == "invalid_direct_answer"
+    assert answer.usage["input_tokens"] == 12 and answer.usage["output_tokens"] == 7
+    diagnostic = answer.usage["diagnostic"]
+    assert diagnostic["stage"] == "schema_validation" and diagnostic["issue_count"] >= 2
+    assert {issue["type"] for issue in diagnostic["issues"]} >= {"extra_forbidden"}
+    assert "secret review text" not in json.dumps(answer.model_dump())
+    assert "private model key" not in json.dumps(answer.model_dump())
     assert len(client.requests) == 1
+
+
+def test_direct_transport_error_is_sanitized_and_not_retried():
+    client = MockLLMClient(deque([RuntimeError("private provider response and key")]))
+    answer = DirectLLM(client, "mock").run(
+        records=RecordSet(records=_dataset().dataset.records), question="How many?")
+    assert answer.status == "failed" and answer.usage["diagnostic"] == {"stage": "model_request"}
+    assert answer.usage["input_tokens"] is None and answer.usage["output_tokens"] is None
+    assert "private" not in json.dumps(answer.model_dump())
+    assert len(client.requests) == 1
+
+
+def test_direct_model_mismatch_preserves_known_usage_without_model_text():
+    client = MockLLMClient(deque([LLMResponse(content={"status": "ok", "answer_text": "x"},
+                                               model="other-model", input_tokens=3, output_tokens=4)]))
+    answer = DirectLLM(client, "expected-model").run(
+        records=RecordSet(records=_dataset().dataset.records), question="How many?")
+    assert answer.usage["diagnostic"] == {"stage": "model_mismatch"}
+    assert (answer.usage["input_tokens"], answer.usage["output_tokens"]) == (3, 4)
+    assert "other-model" not in json.dumps(answer.model_dump())

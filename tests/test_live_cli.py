@@ -85,3 +85,23 @@ def test_extract_command_reports_model_aspects_without_mock_fixture(tmp_path, mo
     result = json.loads(capsys.readouterr().out)
     assert result["actual_requests"] == 1
     assert result["extractions"][0]["aspects"][0]["evidence"] == ["Slow service"]
+
+
+def test_live_direct_schema_failure_retains_safe_diagnostics_and_usage(tmp_path, monkeypatch, capsys):
+    path = tmp_path / "reviews.csv"
+    path.write_text("review\nSlow service.\n", encoding="utf-8")
+    fixture = MockLLMClient(deque([_reply({"status": "ok", "answer_text": "one",
+                                          "unexpected private field": "private response text"})]))
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-do-not-use")
+    monkeypatch.setattr("src.live_cli.ResponsesClient", lambda *args, **kwargs: fixture)
+    args = _args(path, execute=True, max_cost="0.003", max_requests=1)
+    args[args.index("--method") + 1] = "a"
+    assert main(args) == 3
+    result = json.loads(capsys.readouterr().out)
+    assert result["actual_requests"] == 1
+    assert (result["input_tokens"], result["output_tokens"]) == (10, 5)
+    assert result["answer"]["error_code"] == "invalid_direct_answer"
+    assert result["answer"]["usage"]["diagnostic"]["stage"] == "schema_validation"
+    assert "private response text" not in json.dumps(result)
+    assert "unexpected private field" not in json.dumps(result)
+    assert len(fixture.requests) == 1
