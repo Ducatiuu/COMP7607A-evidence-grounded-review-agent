@@ -1,6 +1,8 @@
 from collections import deque
 import json
 
+import pytest
+
 from src.controllers import QueryParser
 from src.llm_client import LLMResponse, MockLLMClient
 
@@ -55,3 +57,17 @@ def test_invalid_query_diagnostic_is_structural_and_redacted():
     assert {issue["path"] for issue in outcome.diagnostic["issues"]} == {
         "categories", "[unrecognized]"}
     assert "SECRET" not in json.dumps(outcome.diagnostic)
+
+
+def test_v2_query_prompt_names_exact_metric_values_and_rejects_unknown_version():
+    client = _client({"task_type": "count", "categories": ["service"],
+                      "metric": "negative_count"})
+    outcome = QueryParser(client=client, provider_model="mock",
+                          prompt_version="query-v2").parse("Count negative service reviews")
+    assert outcome.status == "ok" and outcome.query.metric == "negative_count"
+    request = client.requests[0]
+    assert request.payload["prompt_version"] == "query-v2"
+    assert "distinct_record_count, mention_count" in request.system_prompt
+    assert "Do not add" in request.system_prompt
+    with pytest.raises(ValueError, match="unsupported query prompt"):
+        QueryParser(client=client, provider_model="mock", prompt_version="query-v999")

@@ -41,6 +41,8 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--timeout-seconds", type=float, default=60)
         command.add_argument("--extraction-prompt-version", choices=("extract-v1", "extract-v2"),
                              default="extract-v2")
+        command.add_argument("--query-prompt-version", choices=("query-v1", "query-v2"),
+                             default="query-v2")
         command.add_argument("--execute", action="store_true", help="enable real provider network calls")
     ask = subcommands.choices["ask"]
     ask.add_argument("--method", choices="abc", required=True)
@@ -94,6 +96,7 @@ def main(argv: list[str] | None = None) -> int:
         "cost_cap_usd": str(plan.max_cost_usd), "price_source": plan.price_source,
         "price_date": plan.price_date,
         "extraction_prompt_version": args.extraction_prompt_version,
+        "query_prompt_version": args.query_prompt_version,
     }
     if not args.execute:
         print(json.dumps({"mode": "DRY_RUN", **preflight}, ensure_ascii=False, indent=2))
@@ -115,6 +118,7 @@ def main(argv: list[str] | None = None) -> int:
             max_api_requests=args.max_api_requests, max_records=args.max_records,
             max_input_chars=args.max_input_chars,
             extraction_prompt_version=args.extraction_prompt_version,
+            query_prompt_version=args.query_prompt_version,
         )
         payload = {"answer": run.answer.model_dump(mode="json"),
                    "extraction_coverage": (run.extraction_dataset.coverage.model_dump(mode="json")
