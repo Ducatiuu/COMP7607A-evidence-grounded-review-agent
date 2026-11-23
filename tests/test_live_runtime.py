@@ -134,3 +134,15 @@ def test_cost_gate_freezes_real_requests_after_transport_failure():
     assert result.answer.status == "failed"
     assert result.requests == guarded.requests == len(delegate.requests) == 1
     assert result.input_tokens is None and guarded.estimated_cost_usd is None
+
+
+def test_b_and_c_expose_only_safe_query_parse_diagnostics():
+    invalid = _reply({"task_type": "count", "categories": "SECRET_OUTPUT"})
+    b = _run("b", MockLLMClient(deque([*_extraction_responses(), invalid])), max_api_requests=7)
+    c = _run("c", MockLLMClient(deque([invalid])), extraction_dataset=b.extraction_dataset,
+             max_api_requests=7)
+    for result in (b, c):
+        assert result.answer.status == "failed" and result.answer.error_code == "invalid_query_parse"
+        assert result.answer.usage["diagnostic"]["issues"][0] == {
+            "path": "categories", "type": "list_type"}
+        assert "SECRET_OUTPUT" not in str(result.answer.usage)

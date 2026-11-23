@@ -111,7 +111,8 @@ class DynamicAgent:
         if outcome.status != "ok" or outcome.query is None:
             return AnswerPayload(method="c", question_id=question_id, status="failed", answer_text="",
                                  error_code=outcome.error_code or "query_parse_failed", coverage=ctx.dataset.coverage,
-                                 usage={"api_requests": outcome.requests, "parser_requests": outcome.requests})
+                                 usage={"api_requests": outcome.requests, "parser_requests": outcome.requests,
+                                        "diagnostic": outcome.diagnostic})
         query = outcome.query
         if query.task_type in {"insufficient_info", "clarification", "unsupported"}:
             status = "insufficient_info" if query.task_type == "insufficient_info" else "clarification" if query.task_type == "clarification" else "failed"

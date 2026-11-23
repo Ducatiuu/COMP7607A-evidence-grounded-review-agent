@@ -1,4 +1,5 @@
 from collections import deque
+import json
 
 from src.controllers import QueryParser
 from src.llm_client import LLMResponse, MockLLMClient
@@ -44,3 +45,13 @@ def test_empty_question_has_no_model_request():
     outcome = QueryParser(client=client, provider_model="mock").parse("  ")
     assert outcome.error_code == "empty_question" and outcome.requests == 0
     assert client.requests == []
+
+
+def test_invalid_query_diagnostic_is_structural_and_redacted():
+    client = _client({"task_type": "count", "categories": "SECRET_MODEL_TEXT",
+                      "SECRET_FIELD": "SECRET_REVIEW_TEXT"})
+    outcome = QueryParser(client=client, provider_model="mock").parse("Count service reviews")
+    assert outcome.status == "failed" and outcome.diagnostic["stage"] == "schema_validation"
+    assert {issue["path"] for issue in outcome.diagnostic["issues"]} == {
+        "categories", "[unrecognized]"}
+    assert "SECRET" not in json.dumps(outcome.diagnostic)

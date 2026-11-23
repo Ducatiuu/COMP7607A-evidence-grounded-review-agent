@@ -124,7 +124,8 @@ def _parse_failure(method: str, question_id: str | None, outcome: ParseOutcome, 
                              coverage=ctx.dataset.coverage, usage={"api_requests": outcome.requests, "parser_requests": outcome.requests})
     return AnswerPayload(method=method, question_id=question_id, status="failed", answer_text="",
                          error_code=outcome.error_code or "query_parse_failed", coverage=ctx.dataset.coverage,
-                         usage={"api_requests": outcome.requests, "parser_requests": outcome.requests})
+                         usage={"api_requests": outcome.requests, "parser_requests": outcome.requests,
+                                "diagnostic": outcome.diagnostic})
 
 
 def _tool_failure(method: str, question_id: str | None, ctx: AnalysisContext, trace: list[TraceEvent], outcome: ParseOutcome) -> AnswerPayload:
