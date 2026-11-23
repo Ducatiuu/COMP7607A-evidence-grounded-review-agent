@@ -94,7 +94,7 @@ def test_invalid_decision_and_timeout_consume_rounds():
 
 
 def test_decision_v2_prompt_and_safe_schema_diagnostic():
-    bad = LLMResponse(content={"action": "call_tools", "calls": [],
+    bad = LLMResponse(content={"action": "call_tool", "calls": [],
                                "SECRET_FIELD": "SECRET_OUTPUT"}, model="mock")
     agent, decider, _ = _agent([bad, _decision("call_tools", [_aggregate_call()]),
                                _decision("finish")], decision_prompt_version="decision-v2")
@@ -105,9 +105,15 @@ def test_decision_v2_prompt_and_safe_schema_diagnostic():
     diagnostic = answer.tool_trace[0].result_summary
     assert diagnostic["stage"] == "schema_validation"
     assert any(issue["path"] == "[unrecognized]" for issue in diagnostic["issues"])
+    assert diagnostic["known_invalid_action"] == "call_tool"
     assert "SECRET" not in json.dumps(diagnostic)
     with pytest.raises(ValueError, match="unsupported decision prompt version"):
         _agent([], decision_prompt_version="decision-unknown")
+
+    v3, v3_client, _ = _agent([_decision("call_tools", [_aggregate_call()]),
+                               _decision("finish")], decision_prompt_version="decision-v3")
+    assert v3.run(ctx=_dataset(), question="What is the negative service rate?").status == "ok"
+    assert '"action":"call_tools"' in v3_client.requests[0].system_prompt
 
 
 def test_conditional_count_needs_aggregate_on_filtered_scope():

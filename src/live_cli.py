@@ -45,8 +45,8 @@ def _parser() -> argparse.ArgumentParser:
                              default="query-v2")
         command.add_argument("--answer-prompt-version", choices=("answer-v1", "answer-v2", "answer-v3"),
                              default="answer-v3")
-        command.add_argument("--decision-prompt-version", choices=("decision-v1", "decision-v2"),
-                             default="decision-v2")
+        command.add_argument("--decision-prompt-version", choices=("decision-v1", "decision-v2", "decision-v3"),
+                             default="decision-v3")
         command.add_argument("--execute", action="store_true", help="enable real provider network calls")
     ask = subcommands.choices["ask"]
     ask.add_argument("--method", choices="abc", required=True)

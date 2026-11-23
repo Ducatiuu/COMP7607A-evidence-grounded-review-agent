@@ -37,7 +37,7 @@ def test_dry_run_checks_custom_csv_and_budget_without_key(tmp_path, monkeypatch,
     assert result["extraction_prompt_version"] == "extract-v2"
     assert result["query_prompt_version"] == "query-v2"
     assert result["answer_prompt_version"] == "answer-v3"
-    assert result["decision_prompt_version"] == "decision-v2"
+    assert result["decision_prompt_version"] == "decision-v3"
     assert result["conservative_requests"] == 5
     assert result["declared_worst_case_usd"] == "0.015"
 
