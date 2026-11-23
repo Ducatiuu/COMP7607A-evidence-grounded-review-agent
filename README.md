@@ -30,6 +30,8 @@ The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path,
 
 `python -m src.live_cli ask --help` and `python -m src.live_cli extract --help` expose the model-backed CSV path. Both commands run a local `DRY_RUN` by default and require the file, column mapping if needed, provider/model, record/character/request/token ceilings, dated input/output prices and a USD cap. `--execute` explicitly enables network use and reads the matching key from the environment; it should be used only after the team confirms the exact model, data transfer, current prices and approved budget. Failed/partial extraction and failed answers return a nonzero exit status. The CLI does not use demo answers or formal gold labels. The Streamlit UI and experiment runner remain MOCK-only.
 
+`python -m scripts.prepare_dev_pilot` prepares a local, unreviewed candidate for a later development pilot. It selects 30 records from `data/processed/dev.csv` with a fixed seed, writes ten questions and a runtime CSV under ignored `data/processed/dev_pilot/`, and keeps the independent Gold references under ignored `data/gold/dev_pilot/`. It never calls a model or reads formal test records. The generated manifest records source and output hashes; existing files are not overwritten. Review the candidate before requesting a separately approved live pilot.
+
 ## Offline CLI (synthetic fixture)
 
 The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.
