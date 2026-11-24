@@ -14,12 +14,13 @@ from src.data_loader import dataset_fingerprint, load_csv, read_csv
 from src.demo_mock import DEMO_FINGERPRINT, PRESENTATION_FINGERPRINT, DEMO_MISSING_DATE_QUESTION, DEMO_QUESTION, mock_for_demo, run_demo_method
 from src.schemas import AnswerPayload, Category, ExtractionDataset
 from src.tools import AggregateArgs, AnalysisContext, EvidenceArgs, FilterArgs, aggregate_aspects, filter_records, get_evidence
+from src.ui_live import MAX_RECORDS, run_live_answer, run_live_extraction
 from src.ui_state import UIWorkspace, clear_workspace, load_workspace, new_session_token, save_workspace
 
 
 st.set_page_config(page_title="Evidence-Grounded ABSA", layout="wide")
 st.title("Evidence-Grounded Restaurant Review Analysis")
-st.caption("Synthetic MOCK demo · no live model or formal research results")
+st.caption("Synthetic MOCK demo or guarded DeepSeek analysis · no formal research results")
 
 token = st.query_params.get("session")
 try:
@@ -67,6 +68,8 @@ with dataset_tab:
             persist(UIWorkspace(source_label="Synthetic Proposal example" if mode == "Built-in synthetic demo" else "60 simulated entries", records=records))
     else:
         uploaded = st.file_uploader("Review CSV", type="csv", key="upload_csv", max_upload_size=1)
+        text_column = st.text_input("Review text column", value="text", key="upload_text_column")
+        id_column = st.text_input("Optional ID column", value="record_id", key="upload_id_column")
         if st.button("Load uploaded CSV", key="load_upload"):
             if uploaded is None:
                 st.error("Choose a CSV file first.")
@@ -75,19 +78,20 @@ with dataset_tab:
                     raw = uploaded.getvalue()
                     if len(raw) > 1_000_000:
                         raise ValueError("CSV exceeds the 1 MB local limit")
-                    records = read_csv(io.StringIO(raw.decode("utf-8-sig")))
+                    records = read_csv(io.StringIO(raw.decode("utf-8-sig")),
+                                       text_column=text_column, id_column=id_column)
                     persist(UIWorkspace(source_label=f"Uploaded: {uploaded.name}", records=records))
                 except (UnicodeDecodeError, ValueError) as exc:
                     st.error(f"CSV rejected: {exc}")
     if workspace.records is not None:
         st.success(f"Loaded {len(workspace.records.records)} records from {workspace.source_label}.")
         st.dataframe([record.model_dump() for record in workspace.records.records], hide_index=True)
-        st.caption("Uploaded reviews and derived state are kept only in ignored local outputs/ui_sessions until cleared.")
+        st.caption("Uploaded reviews and derived state are kept in ignored local outputs/ui_sessions; live traces are saved separately in outputs/ui_live_runs.")
         if st.button("Clear local workspace", key="clear_workspace"):
             clear_workspace(token)
             workspace = UIWorkspace()
             st.session_state["workspace"] = workspace
-            st.success("Local workspace cleared.")
+            st.success("Local workspace cleared. Saved live run traces remain under outputs/ui_live_runs.")
     else:
         st.info("Load a dataset to begin.")
 
@@ -104,7 +108,20 @@ with analysis_tab:
                 persist(workspace.model_copy(update={"extraction": run.dataset, "extraction_origin": "synthetic_mock", "extraction_requests": run.requests,
                                                      "answer": None, "comparison": {}}))
         else:
-            st.info("MOCK extraction supports only the unchanged synthetic fixtures. Upload a validated ExtractionDataset JSON for deterministic analysis of other CSVs.")
+            st.info("Run live DeepSeek extraction for uploaded CSV, or load a matching ExtractionDataset JSON for deterministic analysis.")
+        if st.button("Run live DeepSeek extraction", key="extract_live"):
+            if len(workspace.records.records) > MAX_RECORDS:
+                st.error(f"Live analysis accepts up to {MAX_RECORDS} reviews at a time.")
+            else:
+                try:
+                    dataset, summary = run_live_extraction(workspace.records, source_label=workspace.source_label)
+                    persist(workspace.model_copy(update={"extraction": dataset,
+                                                 "extraction_origin": "live_deepseek",
+                                                 "extraction_requests": summary["requests"],
+                                                 "answer": None, "answer_origin": None,
+                                                 "live_run_summary": summary, "comparison": {}}))
+                except (ValueError, RuntimeError, OSError) as exc:
+                    st.error(f"Live extraction stopped: {type(exc).__name__}. Check the key, current price verification and run limits.")
         extraction_file = st.file_uploader("Validated extraction JSON (optional)", type="json", key="upload_extraction", max_upload_size=5)
         if st.button("Load extraction JSON", key="load_extraction"):
             if extraction_file is None:
@@ -189,12 +206,31 @@ with ask_tab:
             try:
                 answer, _ = run_demo_method(workspace.records, method=method, question=question,
                                              extraction_dataset=workspace.extraction if method in {"b", "c"} else None)
-                persist(workspace.model_copy(update={"answer": answer}))
+                persist(workspace.model_copy(update={"answer": answer, "answer_origin": "synthetic_mock"}))
             except ValueError as exc:
                 st.error(str(exc))
+    st.subheader("Ask live DeepSeek about loaded reviews")
+    live_question = st.text_input("Live question", key="live_question")
+    live_method = st.selectbox("Live method", ["a", "b", "c"], key="live_method")
+    if st.button("Ask live", key="ask_live"):
+        if workspace.records is None:
+            st.error("Load a CSV first.")
+        elif live_method in {"b", "c"} and workspace.extraction_origin != "live_deepseek":
+            st.error("Run live DeepSeek extraction on this CSV before asking with B or C.")
+        else:
+            try:
+                answer, summary = run_live_answer(workspace.records, question=live_question,
+                                                  method=live_method, extraction=workspace.extraction,
+                                                  source_label=workspace.source_label)
+                persist(workspace.model_copy(update={"answer": answer,
+                                             "answer_origin": "live_deepseek",
+                                             "live_run_summary": summary}))
+            except (ValueError, RuntimeError, OSError) as exc:
+                st.error(f"Live answer stopped: {type(exc).__name__}. Check the key, current price verification and run limits.")
+
     if workspace.answer is not None:
         st.write(workspace.answer.answer_text or workspace.answer.error_code)
-        st.write(f"Status: {workspace.answer.status.upper()} · Method {workspace.answer.method.upper()} · MOCK")
+        st.write(f"Status: {workspace.answer.status.upper()} · Method {workspace.answer.method.upper()} · {('LIVE DeepSeek' if workspace.answer_origin == 'live_deepseek' else 'MOCK')}")
         st.json([claim.model_dump(mode="json") for claim in workspace.answer.numeric_claims])
         if workspace.answer.denominator_explanation:
             st.caption(workspace.answer.denominator_explanation)
@@ -226,7 +262,10 @@ with comparison_tab:
 
 with results_tab:
     st.subheader("Cost, trace and results")
-    st.info("No live model or formal experiment results are available. All displayed answers and costs are synthetic MOCK traces.")
+    st.info("Local live runs are development analysis, not formal experiment scores. Source and numeric checks do not judge semantic correctness.")
+    if workspace.live_run_summary is not None:
+        st.write("Latest live run and verification scope")
+        st.json(workspace.live_run_summary)
     if workspace.answer is not None:
         st.write("Latest answer usage")
         st.json(workspace.answer.usage)

@@ -18,9 +18,11 @@ class UIWorkspace(StrictModel):
     source_label: str = ""
     records: RecordSet | None = None
     extraction: ExtractionDataset | None = None
-    extraction_origin: Literal["synthetic_mock", "provided"] | None = None
+    extraction_origin: Literal["synthetic_mock", "provided", "live_deepseek"] | None = None
     extraction_requests: int | None = Field(default=None, ge=0)
     answer: AnswerPayload | None = None
+    answer_origin: Literal["synthetic_mock", "live_deepseek"] | None = None
+    live_run_summary: dict[str, object] | None = None
     comparison: dict[str, AnswerPayload] = Field(default_factory=dict)
 
     @model_validator(mode="after")

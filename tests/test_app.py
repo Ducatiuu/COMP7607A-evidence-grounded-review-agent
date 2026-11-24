@@ -98,3 +98,58 @@ def test_simulated_60_record_demo_runs_full_mock_path(tmp_path, monkeypatch):
     assert (answer.numeric_claims[0].numerator, answer.numeric_claims[0].denominator, answer.numeric_claims[0].value) == (24, 48, 0.5)
     at.button(key="compare").click().run()
     assert not at.exception and {method: item.status for method, item in at.session_state["workspace"].comparison.items()} == {"a": "ok", "b": "ok", "c": "ok"}
+
+
+def test_uploaded_csv_live_buttons_show_answer_and_provenance(tmp_path, monkeypatch):
+    from src.schemas import AnswerPayload
+    import src.ui_live as ui_live
+
+    monkeypatch.setenv("ABSA_UI_SESSION_DIR", str(tmp_path / "sessions"))
+    calls = []
+
+    def extract(records, *, source_label):
+        calls.append("extract")
+        dataset = ExtractionDataset(
+            fingerprint=dataset_fingerprint(records), records=records.records,
+            extractions=[ExtractionResult(record_id="U1", aspects=[{
+                "category": "service", "sentiment": "negative", "evidence": ["Bad service"]}], status="ok")],
+            provider_model="deepseek-flash", prompt_version="extract-v2", schema_version="v1",
+            coverage=Coverage(total=1, success=1))
+        return dataset, {"status": "COMPLETE", "requests": 1, "verification_scope": "extraction_schema"}
+
+    def answer(records, *, question, method, extraction, source_label):
+        calls.append("answer")
+        assert method == "b" and extraction.provider_model == "deepseek-flash"
+        return AnswerPayload(method="b", status="ok", answer_text="One negative service review.",
+                             numeric_claims=[{"metric": "negative_count", "category": "service",
+                                              "scope_ids": ["U1"], "value": 1}],
+                             usage={"api_requests": 2}), {"status": "COMPLETE", "requests": 2,
+                                                         "verification_scope": "tool_and_source_consistency"}
+
+    monkeypatch.setattr(ui_live, "run_live_extraction", extract)
+    monkeypatch.setattr(ui_live, "run_live_answer", answer)
+    at = AppTest.from_file(APP).run()
+    at.radio(key="source_mode").set_value("Upload CSV").run()
+    at.file_uploader(key="upload_csv").upload("other.csv", b"record_id,text\nU1,Bad service.\n", "text/csv").run()
+    at.button(key="load_upload").click().run()
+    at.button(key="extract_live").click().run()
+    assert at.session_state["workspace"].extraction_origin == "live_deepseek"
+    at.text_input(key="live_question").set_value("How many negative service reviews?").run()
+    at.selectbox(key="live_method").set_value("b").run()
+    at.button(key="ask_live").click().run()
+    assert not at.exception and calls == ["extract", "answer"]
+    assert at.session_state["workspace"].answer_origin == "live_deepseek"
+    assert any("LIVE DeepSeek" in item.value for item in at.markdown)
+
+
+def test_upload_accepts_explicit_review_and_id_column_mapping(tmp_path, monkeypatch):
+    monkeypatch.setenv("ABSA_UI_SESSION_DIR", str(tmp_path))
+    at = AppTest.from_file(APP).run()
+    at.radio(key="source_mode").set_value("Upload CSV").run()
+    at.text_input(key="upload_text_column").set_value("review").run()
+    at.text_input(key="upload_id_column").set_value("review_id").run()
+    at.file_uploader(key="upload_csv").upload(
+        "mapped.csv", b"review_id,review,extra\nU9,Service was slow.,x\n", "text/csv").run()
+    at.button(key="load_upload").click().run()
+    assert not at.exception
+    assert at.session_state["workspace"].records.records[0].record_id == "U9"
