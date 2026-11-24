@@ -180,7 +180,7 @@ service + positive
 | `model_error`          | 模型错误     | 原文明确支持 Gold，模型预测不合理                            |
 | `annotation_ambiguity` | 标注歧义     | 原文存在不同的合理理解，或者 Gold 标注本身值得进一步裁定     |
 | `both_or_mixed`        | 混合问题     | 同一条评论包含多个差异，而且不同差异的原因不一样             |
-| `no_error`             | 差异检测错误 | Gold 和模型实际上没有需要记录的标签差异，是程序比较或数据对齐出了问题 |
+| `false_discrepancy`    | 程序误报差异 | Gold 和模型实际上没有需要记录的标签差异，是程序比较或数据对齐出了问题 |
 | `no_issue`             | 差异可接受   | 差异真实存在，但根据原文和标注规范，Gold 与模型两种读法都可接受，且不需进一步裁决 |
 | `unresolved`           | 无法确定     | 根据当前原文和标注规范，审核者无法给出有依据的结论           |
 
@@ -255,37 +255,30 @@ Gold：`anecdotes/miscellaneous + positive`
 
 注意：多个差异不一定选 `both_or_mixed`。 如果两个差异都是模型错误，仍可选择 `model_error`。只有原因不同才使用混合类型。
 
-### 4. `no_error`：程序错误地报告了差异
+### 4. `false_discrepancy`：程序把不存在的差异报了出来
 
-例如：
+这里先只检查一件事：**程序列出的差异，和同一条评论的 Gold、模型预测是否对得上？**先核对 `record_id`，再对照两边的 Category 和 Sentiment。
 
-Gold：`service + negative`
+例如，某条评论的 Gold 是 `service + negative`，模型预测也是 `service + negative`，程序却报告 `wrong_sentiment`。两边的情感明明相同，这条报告是误报；可能是程序比较错了，也可能是拿错了评论 ID。选 `false_discrepancy`，并在理由中写明哪一项实际相同、哪一项被误报。
 
-模型：`service + negative`
+> Gold and prediction both label service as negative, but wrong_sentiment was reported. Please check the comparison or record alignment.
 
-但程序由于读取了错误的记录 ID，错误地显示：
+**不要用 `false_discrepancy` 表示“我觉得模型是对的”。**看下面两种情况的区别：
 
-```
-wrong_sentiment
-```
+| 原文 | Gold | 模型 | 程序报告情感不同，应该怎么选？ |
+| --- | --- | --- | --- |
+| The service was terrible. | `service + negative` | `service + negative` | `false_discrepancy`：两边相同，程序误报。 |
+| The service was terrible. | `service + positive` | `service + negative` | **不能选 `false_discrepancy`**：两边确实不同。原文中的 terrible 支持 negative，Gold 可能有误；按本审核协议选 `annotation_ambiguity`，写清依据，交负责人裁决。 |
 
-此时 Gold 和模型实际一致，差异来自数据对齐或比较程序。
+简单说：**差异不存在、程序报错 → `false_discrepancy`；差异真实存在、Gold 可能有误 → `annotation_ambiguity`。**审核者只记录判断和理由，不直接改 Gold。
 
-选择 no_error
-
-判断理由：
-
-> Gold and prediction match. The reported difference appears to be a record-alignment error.
-
-特别注意：`no_error` 不是“我认为模型预测正确”。
-
-假如 Gold 是错误的、模型反而预测正确，但两者确实存在差异，那么这仍然不是 `no_error`。应该记录 Gold 的标注问题，交给后续人工裁决。
+如果之前已下载的审核草稿使用旧值 `no_error`，新版页面在导入时会将其转成 `false_discrepancy`；导出的 CSV 统一使用新值。
 
 ### 5. `no_issue`：真实差异可以接受
 
 `no_issue` 表示程序报告的标签差异确实存在，但审核者已核对原文及标注规范，认为两种标法都可接受，且不需要再裁决。选中后 `human_reason` 可留空；程序仍保留这条差异记录。
 
-如果 Gold 可能标错，或两种读法是否都符合规范仍不确定，请选 `annotation_ambiguity` 或 `unresolved`，不要用 `no_issue`。如果程序把本不存在的差异报出来，应选 `no_error`。
+如果 Gold 可能标错，或两种读法是否都符合规范仍不确定，请选 `annotation_ambiguity` 或 `unresolved`，不要用 `no_issue`。如果程序把本不存在的差异报出来，应选 `false_discrepancy`。
 
 ### 6. `unresolved`：暂时无法判断
 
@@ -391,11 +384,11 @@ Gold：`anecdotes/miscellaneous + negative`
 
 1. 解压各自的审核包，使用 Chrome 或 Edge 打开 `review.html`。选择审核类型后，先导入同包内 `01_extraction/reviewer_N.csv` 或 `02_questions/reviewer_N.csv`；未导入时不能开始审核。
 2. 页面自动显示 Reviewer 1 为 R1、Reviewer 2 为 R2，不需要手动填写审核代号或日期。
-3. 在“抽取差异（13）”中逐条阅读原文、Gold 和模型预测。`no_issue` 可不填理由直接完成；`no_error` 表示程序误报，必须解释。其他问题判断也需说明依据。首次完成时自动记录本机日期，后续修改保留该日期。
+3. 在“抽取差异（13）”中逐条阅读原文、Gold 和模型预测。`no_issue` 可不填理由直接完成；`false_discrepancy` 表示程序误报，必须解释。其他问题判断也需说明依据。首次完成时自动记录本机日期，后续修改保留该日期。
 4. 在“正式候选题（120）”中逐题阅读问题、候选参考答案及对应的 30 条评论，独立填写四项 yes/no。全部为 yes 时修改建议和备注可留空；有 no 时须填写说明或建议。非 Rate 题的分母显示 N/A，导出时按审核协议记为 yes；Rate 题仍需核对分母及零分母。
 5. 不确定或发现问题时认真填写备注，不能为了完成任务直接全部选择 yes。“已完成”仅代表必填字段齐全，不代表审核通过。
 6. 两部分分别点击“下载当前 CSV”，定期备份并将最终两份 CSV 交给项目负责人。下次继续时导入上次保存的 CSV；页面不会自动恢复此前未导出的编辑。
 
 两名审核员必须分别完成全部 13 条差异和 120 道题，不能互相参考判断。分歧由负责人后续裁决，不修改原始 Gold 或候选参考答案。
 
-“待复核”表示该条审核已完成，但正式题目有 `no`，或抽取差异选择了 `annotation_ambiguity`、`both_or_mixed`、`no_error`、`unresolved`，需要负责人后续检查。选择 `no_issue` 且完成审核时不显示“待复核”。
+“待复核”表示该条审核已完成，但正式题目有 `no`，或抽取差异选择了 `annotation_ambiguity`、`both_or_mixed`、`false_discrepancy`、`unresolved`，需要负责人后续检查。选择 `no_issue` 且完成审核时不显示“待复核”。

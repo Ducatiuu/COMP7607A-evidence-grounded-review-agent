@@ -47,7 +47,7 @@ details{margin:.5rem 0}summary{cursor:pointer;color:#174584}
 <span id="import-help" class="muted"></span>
 <span id="progress" class="badge"></span><span id="item-status" class="status"></span>
 </div>
-<small>“待复核”表示已完成但仍需负责人检查：正式题目有 no，或抽取差异选择 annotation_ambiguity、both_or_mixed、no_error、unresolved。no_issue 不属于待复核。</small>
+<small>“待复核”表示已完成但仍需负责人检查：正式题目有 no，或抽取差异选择 annotation_ambiguity、both_or_mixed、false_discrepancy、unresolved。no_issue 不属于待复核。</small>
 <div id="content"></div>
 <section class="muted"><small>候选参考答案仅供审核，尚未冻结。页面不运行模型、不自动填写 yes/no 或差异结论。导入文件必须保持所有只读列原样。</small></section>
 </main>
@@ -58,7 +58,7 @@ const data=JSON.parse(document.getElementById("review-data").textContent);
 const REVIEWER="R"+data.slot;
 document.getElementById("reviewer-label").textContent="Reviewer "+data.slot+"（"+REVIEWER+"）";
 const EDIT={extraction:["human_decision","human_reason","reviewer","reviewed_at"],questions:["reviewer_id","wording_ok","answerability_ok","denominator_ok","reference_ok","proposed_edit","notes"]};
-const OPTIONS={human_decision:["model_error","annotation_ambiguity","both_or_mixed","no_error","no_issue","unresolved"],wording_ok:["yes","no"],answerability_ok:["yes","no"],denominator_ok:["yes","no"],reference_ok:["yes","no"]};
+const OPTIONS={human_decision:["model_error","annotation_ambiguity","both_or_mixed","false_discrepancy","no_issue","unresolved"],wording_ok:["yes","no"],answerability_ok:["yes","no"],denominator_ok:["yes","no"],reference_ok:["yes","no"]};
 const JUDGMENTS=["wording_ok","answerability_ok","denominator_ok","reference_ok"];
 let current="extraction",index=0;
 const loaded={extraction:false,questions:false};
@@ -152,7 +152,7 @@ $("import").onchange=async event=>{const file=event.target.files?.[0];if(!file)r
  if(new RegExp("reviewer[_-]"+(3-data.slot)+"(?:[_\\.-]|$)","i").test(file.name||""))throw Error("请选择本包对应 Reviewer 的 CSV");
  const parsed=parseCsv(await file.text()),kind=current,fields=kind==="extraction"?data.extractionFields:data.questionFields;
  if(parsed.length!==data[kind].length+1||parsed[0].join("\0")!==fields.join("\0"))throw Error("列名或行数与当前审核表不一致");
- const replacement=[];for(let i=0;i<data[kind].length;i++){const line=parsed[i+1];if(line.length!==fields.length)throw Error("第 "+(i+2)+" 行列数错误");const copy={};for(let j=0;j<fields.length;j++){const name=fields[j],entry=line[j];if(EDIT[kind].includes(name)){
+ const replacement=[];for(let i=0;i<data[kind].length;i++){const line=parsed[i+1];if(line.length!==fields.length)throw Error("第 "+(i+2)+" 行列数错误");const copy={};for(let j=0;j<fields.length;j++){const name=fields[j],entry=kind==="extraction"&&name==="human_decision"&&line[j]==="no_error"?"false_discrepancy":line[j];if(EDIT[kind].includes(name)){
    if(OPTIONS[name]&&entry&&!OPTIONS[name].includes(entry))throw Error("第 "+(i+2)+" 行 "+name+" 值无效");
    if((name==="reviewer"||name==="reviewer_id")&&entry&&entry!==REVIEWER)throw Error("第 "+(i+2)+" 行属于另一名 Reviewer");
    if(name==="reviewed_at"&&entry&&!validDate(entry))throw Error("第 "+(i+2)+" 行日期无效");

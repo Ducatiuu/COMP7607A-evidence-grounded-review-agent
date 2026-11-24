@@ -11,7 +11,7 @@ For every row, fill `human_decision`; the browser fills `reviewer` and `reviewed
 | `model_error` | The source text and task annotation rules support the Gold label; the model's differing label is unsupported. |
 | `annotation_ambiguity` | The source text reasonably supports both readings or the Gold label itself needs adjudication. |
 | `both_or_mixed` | The row contains multiple differences with different causes. Explain each in `human_reason`. |
-| `no_error` | The listed difference is a comparison or source-alignment mistake. Identify it. |
+| `false_discrepancy` | The reported difference does not exist in the matching Gold and prediction; identify the comparison or record-alignment mistake. Older CSV drafts using `no_error` are converted on import. |
 | `no_issue` | The listed difference is real, but both label interpretations are acceptable under the annotation rules and no further ruling is needed. A reason is optional. |
 | `unresolved` | The reviewer cannot decide from the text and annotation guidelines. State what is missing. |
 

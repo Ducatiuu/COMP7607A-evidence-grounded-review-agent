@@ -59,15 +59,17 @@ def test_embedded_source_text_cannot_close_json_script_element():
 
 
 def test_reviewer_handoff_contains_full_guide_without_old_identity_steps():
-    guide = "# 抽取差异指南\n五种判断的示例\n\n# **HTML 审核操作与提交**\n2. 手动填写审核代号"
+    guide = "# 抽取差异指南\n六种判断的示例\n\n# **HTML 审核操作与提交**\n2. 手动填写审核代号"
     handoff = _start_here(2, guide).decode("utf-8")
     assert "Reviewer 2（R2）" in handoff
-    assert "五种判断的示例" in handoff
+    assert "六种判断的示例" in handoff
     assert "手动填写审核代号" not in handoff
     assert "首次完成日期" in handoff
     assert "分母显示 N/A" in handoff
     assert "必须导入本包内对应的 CSV" in handoff
     assert "no_issue" in handoff
+    assert "false_discrepancy" in handoff
+    assert "旧版 CSV 中已填写的 `no_error` 导入时会自动转为 `false_discrepancy`" in handoff
     assert "选它时 `human_reason` 可以留空" in handoff
     assert "全部为 `yes` 时修改建议和备注可留空" in handoff
 
