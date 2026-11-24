@@ -91,3 +91,21 @@ def test_v3_query_prompt_separates_comparison_from_filters_and_missing_date():
     prompt = client.requests[0].system_prompt
     assert "Do not turn the compared categories into AND/OR conditions" in prompt
     assert "month, trend" in prompt
+
+
+def test_rate_scope_rejects_target_negative_prefilter_but_preserves_independent_subgroup():
+    bad = {"task_type": "rate", "categories": ["service"], "metric": "negative_rate",
+           "denominator_spec": "aspect_mentions",
+           "conditions": [{"category": "service", "sentiment": "negative"}]}
+    client = _client(bad)
+    outcome = QueryParser(client, "mock", prompt_version="query-v4").parse(
+        "Among reviews mentioning service, what fraction are negative about service?")
+    assert outcome.status == "failed"
+    assert outcome.diagnostic["issues"] == [{"path": "[root]", "type": "value_error",
+                                              "coherence_rule": "rate_target_negative_filter"}]
+    assert "target's negative" in client.requests[0].system_prompt
+    good = {**bad, "conditions": [{"category": "food", "sentiment": "positive"}]}
+    accepted = QueryParser(_client(good), "mock", prompt_version="query-v4").parse(
+        "Among food-positive reviews, what fraction of service mentions are negative?")
+    assert accepted.status == "ok"
+    assert accepted.query.conditions[0].category.value == "food"

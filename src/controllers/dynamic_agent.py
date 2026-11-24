@@ -66,8 +66,19 @@ record_ids scope. If nonempty and evidence is needed, call get_evidence with
 the selected IDs, then finish after its result. A successful empty filter is
 valid evidence of an empty selection."""
 
+DECISION_PROMPT_V5 = DECISION_PROMPT_V4 + """
+For a negative_rate QuerySpec with conditions=[], aggregate the target category
+over the full review scope. Do not filter by target category negative sentiment:
+that would turn the numerator into the denominator. The aggregate tool itself
+counts distinct negative records and all target mentions (or all scoped records
+when denominator_spec=all_records). When QuerySpec has independent subgroup
+conditions, filter using exactly those predicates first, then aggregate over
+the complete filtered record_ids, including an empty list. Do not add new
+conditions based on the target negative sentiment."""
+
 _DECISION_PROMPTS = {"decision-v1": DECISION_PROMPT, "decision-v2": DECISION_PROMPT_V2,
-                     "decision-v3": DECISION_PROMPT_V3, "decision-v4": DECISION_PROMPT_V4}
+                     "decision-v3": DECISION_PROMPT_V3, "decision-v4": DECISION_PROMPT_V4,
+                     "decision-v5": DECISION_PROMPT_V5}
 _SAFE_DECISION_FIELDS = frozenset({"action", "calls", "name", "arguments"})
 _SAFE_ACTION_TOKENS = frozenset({
     "call_tool", "tool_call", "continue", "answer", "final", "final_answer",

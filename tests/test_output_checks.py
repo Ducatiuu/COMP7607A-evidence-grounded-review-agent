@@ -150,7 +150,7 @@ def test_filter_check_normalizes_omitted_optional_sentiment():
                            numeric_claims=supported_numeric_claims(query, [aggregate]),
                            denominator_explanation="Among service mentions.", tool_trace=trace)
     assert check_answer(answer, ctx, query, [filtered, aggregate]) == []
-    narrower = QuerySpec(task_type="rate", conditions=[{"category": "service", "sentiment": "negative"}],
+    narrower = QuerySpec(task_type="rate", conditions=[{"category": "food", "sentiment": "positive"}],
                          categories=["service"], metric="negative_rate",
                          denominator_spec="aspect_mentions")
     assert "missing_query_filter" in check_answer(answer, ctx, narrower, [filtered, aggregate])
@@ -173,6 +173,23 @@ def test_answer_v5_supplies_exact_quote_candidates_only_from_evidence_tool():
         query=query, ctx=ctx, results=[evidence], trace=[])
     assert answer.status == "ok"
     assert client.requests[0].payload["supported_citations"] == citations
+
+
+def test_answer_v6_requires_fraction_unit_and_repairs_once():
+    ctx, result, query = _rate_context()
+    wrong = _answer()
+    wrong["numeric_claims"][0]["unit"] = "percent"
+    client = MockLLMClient(deque([LLMResponse(content=wrong, model="mock"),
+                                  LLMResponse(content=_answer(), model="mock")]))
+    answer = Finalizer(client, "mock", prompt_version="answer-v6").finish(
+        method="b", question="Service negative rate?", question_id="Q6", query=query,
+        ctx=ctx, results=[result], trace=[])
+    assert answer.status == "ok" and answer.usage["output_repairs"] == 1
+    assert client.requests[0].payload["rate_definition"]["denominator_spec"] == "aspect_mentions"
+    assert client.requests[1].payload["validation_errors"] == ["rate_unit_mismatch"]
+    partial = AnswerPayload.model_validate({**_answer(), "status": "partial"})
+    partial.numeric_claims[0].unit = "percent"
+    assert "rate_unit_mismatch" in check_answer(partial, ctx, query, [result], require_rate_unit=True)
 
 
 def test_finalizer_fails_after_one_unsuccessful_repair():

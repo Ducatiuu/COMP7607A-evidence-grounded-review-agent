@@ -108,7 +108,8 @@ def _filter_matches_query(arguments: dict | None, query: QuerySpec) -> bool:
     return actual == expected
 
 
-def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, results: list[ToolResult]) -> list[str]:
+def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, results: list[ToolResult],
+                 *, require_rate_unit: bool = False) -> list[str]:
     errors: list[str] = []
     if answer.status == "ok" and any(result.status == "partial" for result in results):
         errors.append("tool_result_not_complete")
@@ -177,4 +178,8 @@ def check_answer(answer: AnswerPayload, ctx: AnalysisContext, query: QuerySpec, 
             errors.append("unsupported_numeric_claim")
     if any(claim.metric == "negative_rate" for claim in answer.numeric_claims) and not answer.denominator_explanation:
         errors.append("missing_denominator_explanation")
+    if (require_rate_unit and query.task_type == "rate" and answer.status in {"ok", "partial"}
+            and any(claim.metric == "negative_rate" and claim.unit != "fraction"
+                    for claim in answer.numeric_claims)):
+        errors.append("rate_unit_mismatch")
     return sorted(set(errors))

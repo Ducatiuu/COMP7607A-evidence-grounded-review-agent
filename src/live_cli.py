@@ -41,12 +41,12 @@ def _parser() -> argparse.ArgumentParser:
         command.add_argument("--timeout-seconds", type=float, default=60)
         command.add_argument("--extraction-prompt-version", choices=("extract-v1", "extract-v2"),
                              default="extract-v2")
-        command.add_argument("--query-prompt-version", choices=("query-v1", "query-v2", "query-v3"),
-                             default="query-v3")
-        command.add_argument("--answer-prompt-version", choices=("answer-v1", "answer-v2", "answer-v3", "answer-v4", "answer-v5"),
-                             default="answer-v5")
-        command.add_argument("--decision-prompt-version", choices=("decision-v1", "decision-v2", "decision-v3", "decision-v4"),
-                             default="decision-v4")
+        command.add_argument("--query-prompt-version", choices=("query-v1", "query-v2", "query-v3", "query-v4"),
+                             default="query-v4")
+        command.add_argument("--answer-prompt-version", choices=("answer-v1", "answer-v2", "answer-v3", "answer-v4", "answer-v5", "answer-v6"),
+                             default="answer-v6")
+        command.add_argument("--decision-prompt-version", choices=("decision-v1", "decision-v2", "decision-v3", "decision-v4", "decision-v5"),
+                             default="decision-v5")
         command.add_argument("--direct-prompt-version", choices=("direct-v2", "direct-v3"),
                              default="direct-v3")
         command.add_argument("--execute", action="store_true", help="enable real provider network calls")

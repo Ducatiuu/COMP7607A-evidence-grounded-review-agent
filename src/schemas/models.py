@@ -169,6 +169,11 @@ class QuerySpec(StrictModel):
             raise ValueError("rate requires an explicit denominator")
         if self.task_type == "rate" and (not self.categories or self.metric != "negative_rate"):
             raise ValueError("rate requires target categories and negative_rate metric")
+        if self.task_type == "rate" and any(
+            condition.category in self.categories and condition.sentiment == Sentiment.NEGATIVE
+            for condition in self.conditions
+        ):
+            raise ValueError("rate target-negative filter collapses denominator")
         if self.task_type == "selection" and not self.conditions:
             raise ValueError("selection requires conditions")
         if self.task_type == "comparison" and (len(self.categories) < 2 or self.metric is None):

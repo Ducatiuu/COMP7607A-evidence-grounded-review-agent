@@ -35,9 +35,9 @@ def test_dry_run_checks_custom_csv_and_budget_without_key(tmp_path, monkeypatch,
     result = json.loads(capsys.readouterr().out)
     assert result["mode"] == "DRY_RUN" and result["record_count"] == 1
     assert result["extraction_prompt_version"] == "extract-v2"
-    assert result["query_prompt_version"] == "query-v3"
-    assert result["answer_prompt_version"] == "answer-v5"
-    assert result["decision_prompt_version"] == "decision-v4"
+    assert result["query_prompt_version"] == "query-v4"
+    assert result["answer_prompt_version"] == "answer-v6"
+    assert result["decision_prompt_version"] == "decision-v5"
     assert result["direct_prompt_version"] == "direct-v3"
     assert result["conservative_requests"] == 5
     assert result["declared_worst_case_usd"] == "0.015"
@@ -77,8 +77,8 @@ def test_execute_path_uses_injected_provider_for_non_demo_csv(tmp_path, monkeypa
     assert result["extraction_coverage"] == {"total": 1, "success": 1, "failed_ids": []}
     assert [request.stage for request in fixture.requests] == ["extract", "query_parse", "answer"]
     assert fixture.requests[0].payload["prompt_version"] == "extract-v2"
-    assert fixture.requests[1].payload["prompt_version"] == "query-v3"
-    assert fixture.requests[2].payload["prompt_version"] == "answer-v5"
+    assert fixture.requests[1].payload["prompt_version"] == "query-v4"
+    assert fixture.requests[2].payload["prompt_version"] == "answer-v6"
     assert fixture.requests[2].payload["supported_numeric_claims"] == [{
         "metric": "negative_count", "category": "service", "scope_ids": [record_id],
         "value": 1, "numerator": None, "denominator": None}]

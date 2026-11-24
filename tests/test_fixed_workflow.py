@@ -28,6 +28,38 @@ def test_fixed_rate_uses_one_aggregate_and_verified_claim():
     assert [request.stage for request in client.requests] == ["query_parse", "answer"]
 
 
+def test_fixed_rate_independent_subgroup_keeps_full_denominator():
+    query = {"task_type": "rate", "categories": ["service"], "metric": "negative_rate",
+             "denominator_spec": "aspect_mentions",
+             "conditions": [{"category": "food", "sentiment": "positive"}]}
+    claim = {"metric": "negative_rate", "category": "service", "scope_ids": ["R01", "R03"],
+             "value": 0.5, "numerator": 1, "denominator": 2, "unit": "fraction"}
+    answer_data = {"status": "ok", "answer_text": "One of two scoped reviews mentioning service is negative.",
+                   "numeric_claims": [claim], "denominator_explanation": "Two scoped records mention service."}
+    workflow, client = _workflow(query, answer_data)
+    workflow.parser.prompt_version = "query-v4"
+    workflow.finalizer.prompt_version = "answer-v6"
+    answer = workflow.run(ctx=_dataset(), question="Among food-positive reviews, what fraction mention negative service?")
+    assert answer.status == "ok" and answer.numeric_claims[0].denominator == 2
+    assert [event.tool_name for event in answer.tool_trace] == ["filter_records", "aggregate_aspects"]
+    assert answer.tool_trace[1].result_summary["stats"][0]["numerator"] == 1
+    assert answer.tool_trace[1].result_summary["stats"][0]["denominator"] == 2
+    assert client.requests[-1].payload["rate_definition"]["count_unit"] == "distinct_review_records"
+
+
+def test_fixed_rate_target_negative_prefilter_fails_before_tools():
+    query = {"task_type": "rate", "categories": ["service"], "metric": "negative_rate",
+             "denominator_spec": "aspect_mentions",
+             "conditions": [{"category": "service", "sentiment": "negative"}]}
+    workflow, client = _workflow(query)
+    workflow.parser.prompt_version = "query-v4"
+    answer = workflow.run(ctx=_dataset(), question="What fraction of service mentions is negative?")
+    assert answer.status == "failed" and answer.tool_trace == []
+    assert answer.usage["api_requests"] == 1
+    assert answer.usage["diagnostic"]["issues"][0]["coherence_rule"] == "rate_target_negative_filter"
+    assert len(client.requests) == 1
+
+
 def test_fixed_selection_filters_then_gets_evidence():
     query = {"task_type": "selection", "operator": "AND", "conditions": [{"category": "food", "sentiment": "positive"}, {"category": "service", "sentiment": "negative"}], "needs_evidence": True}
     answer_data = {"status": "ok", "answer_text": "R01 matches.", "selected_record_ids": ["R01"],

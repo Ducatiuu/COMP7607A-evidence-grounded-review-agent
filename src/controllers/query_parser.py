@@ -65,8 +65,28 @@ An example shape for a missing date question is
 "metadata_required":["date"],"needs_evidence":false,"ambiguity_note":null}.
 Choose actual categories and metadata from the supplied question. JSON only."""
 
+QUERY_PROMPT_V4 = QUERY_PROMPT_V3 + """
+For a negative rate about category X, distinguish the question's target from
+an independent subgroup. The numerator is the number of distinct review records
+in the analysis scope labelled negative for X. With aspect_mentions, the
+denominator is ALL distinct records in that scope mentioning X with any
+sentiment, including positive, neutral and conflict. With all_records, the
+denominator is ALL distinct records in the scope. The value is numerator /
+denominator, or null when the denominator is zero. One review contributes at
+most once per category; a conflict label is not negative.
+For example, 'Among reviews mentioning service, what fraction are negative
+about service?' has task_type=rate, categories=["service"], metric=negative_rate,
+denominator_spec=aspect_mentions and conditions=[]. Mentioning service defines
+the denominator, not a preliminary filter. Never put the target's negative
+sentiment in conditions merely because the question asks for a negative rate:
+that would shrink the denominator to the numerator. Use conditions only for an
+independent subgroup explicitly requested by the user, such as positive food
+reviews when the target rate is negative service. If the user explicitly asks
+for a rate within already negative reviews of that same target category,
+return clarification rather than silently computing a tautological 100%."""
+
 _QUERY_PROMPTS = {"query-v1": QUERY_PROMPT, "query-v2": QUERY_PROMPT_V2,
-                  "query-v3": QUERY_PROMPT_V3}
+                  "query-v3": QUERY_PROMPT_V3, "query-v4": QUERY_PROMPT_V4}
 
 _SAFE_QUERY_FIELDS = frozenset({
     "task_type", "operator", "conditions", "category", "sentiment", "categories",
@@ -79,6 +99,7 @@ _SAFE_COHERENCE_RULES = {
     "duplicate target categories": "duplicate_target_categories",
     "rate requires an explicit denominator": "rate_missing_denominator",
     "rate requires target categories and negative_rate metric": "rate_missing_targets_or_metric",
+    "rate target-negative filter collapses denominator": "rate_target_negative_filter",
     "selection requires conditions": "selection_missing_conditions",
     "comparison requires at least two categories and a metric": "comparison_missing_targets_or_metric",
     "denominator supplied for a non-rate metric": "denominator_on_non_rate_metric",

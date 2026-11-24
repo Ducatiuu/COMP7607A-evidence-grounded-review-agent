@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from pydantic import ValidationError
 
 from src.llm_client import LLMClient, LLMRequest
+from src.rate_semantics import rate_definition
 from src.schemas import AnswerPayload, QuerySpec, ToolResult, TraceEvent
 from src.tools import AnalysisContext
 from .output_checks import check_answer, supported_citations, supported_comparison_groups, supported_numeric_claims
@@ -73,9 +74,20 @@ exactly record_id, quote, category and sentiment keys. A citation is shaped
 If the list is empty, return citations=[]. Source review IDs in answer_text
 must come from the tool's all_record_ids or supported_citations."""
 
+ANSWER_PROMPT_V6 = ANSWER_PROMPT_V5 + """
+For a rate, the payload's rate_definition explicitly gives the population,
+numerator, denominator and count unit. Every count is of distinct review
+records, not aspect spans or customers; one review contributes at most once
+per target category. Copy the trusted tool numerator and denominator into the
+negative_rate numeric claim, and set its unit to "fraction". In
+denominator_explanation, state whether the denominator is all scoped records
+or only scoped records mentioning the target category. Never first restrict
+the scope to negative records of the same target category. A zero denominator
+means value=null, not zero or 100%. Conflict is not negative."""
+
 _ANSWER_PROMPTS = {"answer-v1": ANSWER_PROMPT, "answer-v2": ANSWER_PROMPT_V2,
                    "answer-v3": ANSWER_PROMPT_V3, "answer-v4": ANSWER_PROMPT_V4,
-                   "answer-v5": ANSWER_PROMPT_V5}
+                   "answer-v5": ANSWER_PROMPT_V5, "answer-v6": ANSWER_PROMPT_V6}
 
 _SAFE_ANSWER_FIELDS = frozenset({
     "method", "question_id", "status", "answer_text", "numeric_claims", "metric",
@@ -90,7 +102,7 @@ _SAFE_CHECK_CODES = frozenset({
     "citation_outside_query_scope", "invalid_selected_record_id", "selection_mismatch",
     "comparison_groups_mismatch", "missing_numeric_claim", "missing_target_claim",
     "numeric_claim_scope_mismatch", "unsupported_numeric_claim",
-    "missing_denominator_explanation",
+    "missing_denominator_explanation", "rate_unit_mismatch",
 })
 
 
@@ -134,11 +146,13 @@ class Finalizer:
                     "query": query.model_dump(mode="json"),
                     "tool_results": [result.model_dump(mode="json") for result in results],
                     **({"supported_numeric_claims": supported_numeric_claims(query, results)}
-                       if self.prompt_version in {"answer-v3", "answer-v4", "answer-v5"} else {}),
+                       if self.prompt_version in {"answer-v3", "answer-v4", "answer-v5", "answer-v6"} else {}),
                     **({"supported_comparison_groups": supported_comparison_groups(query, results)}
-                       if self.prompt_version in {"answer-v4", "answer-v5"} else {}),
+                       if self.prompt_version in {"answer-v4", "answer-v5", "answer-v6"} else {}),
                     **({"supported_citations": supported_citations(results)}
-                       if self.prompt_version == "answer-v5" else {}),
+                       if self.prompt_version in {"answer-v5", "answer-v6"} else {}),
+                    **({"rate_definition": rate_definition(query)}
+                       if self.prompt_version == "answer-v6" and query.task_type == "rate" else {}),
                     "validation_errors": errors if attempt else [],
                     "prompt_version": self.prompt_version,
                 },
@@ -162,7 +176,8 @@ class Finalizer:
                 stage = "schema_validation"
                 answer = AnswerPayload.model_validate(data)
                 stage = "output_checks"
-                errors = check_answer(answer, ctx, query, results) if self.verify_outputs else []
+                errors = check_answer(answer, ctx, query, results,
+                                      require_rate_unit=self.prompt_version == "answer-v6") if self.verify_outputs else []
                 if not errors:
                     return answer.model_copy(update={"usage": {**answer.usage,
                         **({"attempt_diagnostics": attempt_diagnostics} if attempt_diagnostics else {})}})
