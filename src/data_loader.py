@@ -15,12 +15,15 @@ class DataLoadError(ValueError):
     pass
 
 
-def load_csv(path: str | Path, *, text_column: str = "text", id_column: str = "record_id") -> RecordSet:
+def load_csv(path: str | Path, *, text_column: str = "text", id_column: str = "record_id",
+             preserve_explicit_ids: bool = False) -> RecordSet:
     with Path(path).open("r", encoding="utf-8-sig", newline="") as stream:
-        return read_csv(stream, text_column=text_column, id_column=id_column)
+        return read_csv(stream, text_column=text_column, id_column=id_column,
+                        preserve_explicit_ids=preserve_explicit_ids)
 
 
-def read_csv(stream: TextIO, *, text_column: str = "text", id_column: str = "record_id") -> RecordSet:
+def read_csv(stream: TextIO, *, text_column: str = "text", id_column: str = "record_id",
+             preserve_explicit_ids: bool = False) -> RecordSet:
     if not text_column or not id_column or text_column == id_column:
         raise DataLoadError("distinct nonempty text and ID column names required")
     reader = csv.DictReader(_reject_blank_physical_rows(stream))
@@ -38,7 +41,7 @@ def read_csv(stream: TextIO, *, text_column: str = "text", id_column: str = "rec
             if id_column in reader.fieldnames:
                 if not isinstance(raw_id, str) or not raw_id.strip():
                     raise DataLoadError("blank record ID")
-                record_id = raw_id.strip()
+                record_id = raw_id if preserve_explicit_ids else raw_id.strip()
             elif isinstance(text, str):
                 digest = hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
                 record_id = f"auto-{row_number - 1:06d}-{digest}"

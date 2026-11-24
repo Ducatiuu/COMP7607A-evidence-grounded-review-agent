@@ -40,6 +40,8 @@ The current development configuration uses `query-v4`, `answer-v6` and `decision
 
 The three-record `extract-v1` probe stopped after six requests. Every response failed the same structural rule: `evidence` must be a JSON list. The saved result remains under ignored `outputs/live_probe/`. `extract-v2` gives an explicit JSON example and requires a list of exact review substrings. The live CSV CLI defaults to v2 and records the prompt version in its preflight; the mock evaluation retains v1 provenance. The v2 retest succeeded structurally on all three records in three requests. V4 then achieved 30/30 structural extraction coverage, although semantic and downstream answer failures remain.
 
+A 2026-11-24 read-only formal-material preflight reproduced the licensed XML-derived 150/600 split and aligned all 600 Gold IDs and texts with the processed test CSV when `load_csv(..., preserve_explicit_ids=True)` is used. One official source ID has a trailing space; the generic CSV default strips it, so formal SemEval readers must use the preservation option. The 120 candidate questions pass coverage checks, but both human review sheets are blank (960 judgments and 240 reviewer IDs missing). No formal freeze or holdout inference has occurred. The ignored integrity report is `outputs/formal_freeze_preflight_2026-11-24.json`.
+
 `python -m scripts.audit_question_review` checks the two local 120-question review sheets for missing judgments, changed source fields, reported reviewer IDs and disagreements. It never supplies human judgments or freezes the formal question set.
 
 ## Offline CLI (synthetic fixture)
