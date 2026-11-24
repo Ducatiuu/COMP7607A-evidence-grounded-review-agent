@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ABSA 独立人工审核</title>
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,"Microsoft YaHei",sans-serif;color:#14213d;background:#f4f6fa}
+*{box-sizing:border-box}body{margin:0}header{background:#132444;color:#fff;padding:1rem max(1rem,calc((100vw - 1180px)/2))}
+header h1{margin:.1rem 0;font-size:1.5rem}header p{margin:.2rem 0;color:#d6e4fa}
+main{max-width:1180px;margin:auto;padding:1rem}.toolbar,.row{display:flex;gap:.65rem;align-items:center;flex-wrap:wrap}
+.toolbar{background:#fff;padding:1rem;border-radius:10px;box-shadow:0 2px 10px #13244412;margin-bottom:1rem}
+button,select,input,textarea{font:inherit}button{border:1px solid #2a5db0;background:#fff;color:#174584;border-radius:7px;padding:.4rem .7rem;cursor:pointer}
+button.active,.primary{background:#184f9d;color:#fff}button:focus,select:focus,input:focus,textarea:focus{outline:2px solid #f3a712}
+select,input[type=text],input[type=date],textarea{padding:.4rem;border:1px solid #aebbd0;border-radius:6px;background:#fff;max-width:100%}
+textarea{width:100%;min-height:5rem}label{display:block;font-weight:600;margin:.65rem 0 .2rem}
+section,.card{background:#fff;border:1px solid #d9e1ed;border-radius:9px;padding:1rem;margin:.8rem 0}
+.muted{color:#526078}.badge{display:inline-block;padding:.15rem .5rem;border-radius:20px;background:#e4eefd;color:#184f9d;font-size:.9rem}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6fa;padding:.8rem;border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.93rem}th,td{padding:.45rem;border:1px solid #d9e1ed;text-align:left;vertical-align:top}th{background:#eaf0f9}
+td:first-child{white-space:pre}td:nth-child(2){min-width:22rem}.scroll{overflow:auto;max-height:34rem}small{display:block;color:#526078}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem}.notice{border-left:5px solid #e69b0c;background:#fff9e9}
+@media(max-width:700px){td:nth-child(2){min-width:14rem}header,main{padding:1rem}}
+</style>
+</head>
+<body>
+<header><h1>ABSA 独立人工审核 · Reviewer <span id="slot"></span></h1><p>本地离线材料 · 人工判断保持空白 · 不包含正式模型预测</p></header>
+<main>
+<section class="notice"><strong>开始前：</strong>阅读同包的 START_HERE_ZH.md。按原文和标注规则独立判断。页面会本地保存进度，但离开前请分别下载两份 CSV。含 SemEval 数据，请勿公开上传。</section>
+<div class="toolbar">
+<button id="ex-tab" class="active" type="button">抽取差异（13）</button>
+<button id="qu-tab" type="button">正式候选题（120）</button>
+<label for="item-select">当前条目</label><select id="item-select"></select>
+<button id="previous" type="button">上一条</button><button id="next" type="button">下一条</button>
+</div>
+<div class="toolbar">
+<label for="all-reviewer">我的审核代号</label><input id="all-reviewer" type="text" placeholder="如 R1" maxlength="40">
+<button id="apply-reviewer" type="button">填入当前类型全部行</button>
+<button id="export" class="primary" type="button">下载当前 CSV</button>
+<label for="import">导入已填 CSV</label><input id="import" type="file" accept=".csv,text/csv">
+<span id="progress" class="badge"></span>
+</div>
+<div id="content"></div>
+<section class="muted"><small>候选参考答案仅供审核，尚未冻结。页面不运行模型、不自动填写 yes/no 或差异结论。导入文件必须保持所有只读列原样。</small></section>
+</main>
+<script type="application/json" id="review-data">__REVIEW_DATA__</script>
+<script>
+"use strict";
+const data=JSON.parse(document.getElementById("review-data").textContent);
+document.getElementById("slot").textContent=String(data.slot);
+const EDIT={extraction:["human_decision","human_reason","reviewer","reviewed_at"],questions:["reviewer_id","wording_ok","answerability_ok","denominator_ok","reference_ok","proposed_edit","notes"]};
+const OPTIONS={human_decision:["model_error","annotation_ambiguity","both_or_mixed","no_error","unresolved"],wording_ok:["yes","no"],answerability_ok:["yes","no"],denominator_ok:["yes","no"],reference_ok:["yes","no"]};
+const storeKey="absa-human-review-v1-"+data.slot+"-"+data.sheetHashes.extraction+"-"+data.sheetHashes.questions;
+let current="extraction",index=0;
+const state={extraction:data.extraction.map(()=>({})),questions:data.questions.map(()=>({}))};
+try{const saved=JSON.parse(localStorage.getItem(storeKey)||"null");if(saved&&Array.isArray(saved.extraction)&&saved.extraction.length===13&&Array.isArray(saved.questions)&&saved.questions.length===120){for(const kind of Object.keys(state))state[kind]=saved[kind].map(row=>Object.fromEntries(EDIT[kind].map(field=>[field,typeof row[field]==="string"?row[field]:""])));}}catch(_error){}
+const $=id=>document.getElementById(id);
+function el(tag,text,cls){const node=document.createElement(tag);if(text!==undefined)node.textContent=String(text);if(cls)node.className=cls;return node;}
+function save(){try{localStorage.setItem(storeKey,JSON.stringify(state));}catch(_error){$("progress").textContent="本地保存不可用，请立即下载 CSV";}}
+function rows(){return data[current]}
+function value(field){return state[current][index][field]??rows()[index][field]??""}
+function pretty(raw){try{return JSON.stringify(JSON.parse(raw),null,2)}catch(_error){return raw}}
+function card(parent,title,content){const block=el("div",undefined,"card");block.append(el("h3",title),el("pre",content));parent.append(block)}
+function field(parent,name,label){const holder=el("div");const caption=el("label",label);holder.append(caption);let input;
+ if(OPTIONS[name]){input=el("select");input.append(el("option","-- 请选择 --"));input.firstChild.value="";for(const option of OPTIONS[name]){const item=el("option",option);item.value=option;input.append(item)}}
+ else if(name==="human_reason"||name==="proposed_edit"||name==="notes")input=el("textarea");
+ else {input=el("input");input.type=name==="reviewed_at"?"date":"text";input.maxLength=120;}
+ input.value=value(name);caption.append(input);input.addEventListener("input",()=>{state[current][index][name]=input.value;save();progress()});
+ parent.append(holder);
+}
+function progress(){const kind=current;const done=state[kind].filter(row=>kind==="extraction"?EDIT[kind].every(k=>(row[k]||"").trim()):["reviewer_id","wording_ok","answerability_ok","denominator_ok","reference_ok"].every(k=>(row[k]||"").trim())).length;$("progress").textContent=done+" / "+data[kind].length+" 行必填字段已填"}
+function renderExtraction(root,row){root.append(el("h2","抽取差异 · "+row.record_id));root.append(el("p",row.review_text));
+ const grid=el("div",undefined,"grid");card(grid,"SemEval Gold",pretty(row.gold_aspects));card(grid,"模型预测",pretty(row.predicted_aspects));card(grid,"程序发现的差异",pretty(row.differences));root.append(grid);
+ const form=el("section");form.append(el("h3","人工判断"));for(const [name,label] of [["human_decision","判断类型"],["human_reason","判断理由（请引用原文依据）"],["reviewer","审核者代号"],["reviewed_at","审核日期"]])field(form,name,label);root.append(form);
+}
+function goldSummary(row,ids,gold){const aspects=id=>gold.get(id)?.aspects??[];
+ const has=(id,category,sentiment)=>aspects(id).some(a=>a.category===category&&(!sentiment||a.sentiment===sentiment));
+ const negative=category=>ids.filter(id=>has(id,category,"negative"));
+ const listed=items=>items.length?items.join(", "):"（无）";
+ if(row.task_type==="count"){const found=negative("service");return "负面 service："+found.length+" 条\nID："+listed(found)}
+ if(row.task_type==="rate"){const category=row.rate_category||"service",num=negative(category),den=row.denominator_spec==="all_records"?ids:ids.filter(id=>has(id,category));return "类别："+category+"\n分子（负面评论）："+num.length+"；ID："+listed(num)+"\n分母（"+(row.denominator_spec==="all_records"?"本 Pack 全部评论":"提及该类别")+"）："+den.length+"；ID："+listed(den)+"\n比例："+(den.length?num.length+"/"+den.length+" = "+(num.length/den.length).toFixed(4):"未定义（分母为 0）")}
+ if(row.task_type==="selection"){const found=ids.filter(id=>has(id,"food","positive")&&has(id,"service","negative"));return "food positive 且 service negative："+found.length+" 条\nID："+listed(found)}
+ if(row.task_type==="comparison"||row.task_type==="evidence_explanation"){const categories=row.task_type==="comparison"?["food","service"]:["food","service","price"],counts=categories.map(c=>[c,negative(c).length]),max=Math.max(...counts.map(x=>x[1]));return counts.map(([c,n])=>c+" negative："+n+"；ID："+listed(negative(c))).join("\n")+"\n并列最高："+listed(counts.filter(x=>x[1]===max).map(x=>x[0]))}
+ return "这类问题要求核对缺失元数据；当前来源仅有 record_id 和 text 两列。";
+}
+function renderQuestion(root,row){root.append(el("h2",row.question_id+" · "+row.task_type));root.append(el("p",row.wording));
+ const meta=el("p","Pack "+row.pack_id+" · 分母定义："+(row.denominator_spec||"不适用")+" · 比例类别："+(row.rate_category||"不适用"),"muted");root.append(meta);
+ const ids=JSON.parse(row.record_ids),records=new Map(data.testRecords.map(r=>[r.record_id,r])),gold=new Map(data.goldRecords.map(r=>[r.record_id,r]));
+ const grid=el("div",undefined,"grid");card(grid,"只读 Gold 辅助核算（仍需人工核对）",goldSummary(row,ids,gold));card(grid,"未审核候选参考答案",pretty(row.reference_json));card(grid,"预期输出字段",pretty(row.expected_fields));root.append(grid);
+ const section=el("section");section.append(el("h3","本 Pack 的 30 条原文与 Gold 标签"));const scroll=el("div",undefined,"scroll"),table=el("table"),head=el("tr");for(const label of ["record_id","评论原文","Gold aspects"] )head.append(el("th",label));table.append(head);
+ for(const id of ids){const tr=el("tr");tr.append(el("td",id),el("td",records.get(id)?.text??"缺失"),el("td",JSON.stringify(gold.get(id)?.aspects??[])));table.append(tr)}scroll.append(table);section.append(scroll);root.append(section);
+ const form=el("section");form.append(el("h3","人工审核结论"));for(const [name,label] of [["reviewer_id","审核者代号"],["wording_ok","表述清晰"],["answerability_ok","可按预期回答"],["denominator_ok","分母定义正确（非比例题填 yes）"],["reference_ok","参考答案正确"],["proposed_edit","修改建议（如有）"],["notes","理由与核算记录"]])field(form,name,label);root.append(form);
+}
+function render(){const list=rows(),select=$("item-select");select.replaceChildren();for(let i=0;i<list.length;i++){const row=list[i],option=el("option",current==="extraction"?row.record_id:row.question_id);option.value=String(i);select.append(option)}select.value=String(index);
+ $("ex-tab").classList.toggle("active",current==="extraction");$("qu-tab").classList.toggle("active",current==="questions");const root=$("content");root.replaceChildren();current==="extraction"?renderExtraction(root,list[index]):renderQuestion(root,list[index]);progress();}
+function switchTo(kind){current=kind;index=0;render()}
+$("ex-tab").onclick=()=>switchTo("extraction");$("qu-tab").onclick=()=>switchTo("questions");
+$("item-select").onchange=event=>{index=Number(event.target.value);render()};
+$("previous").onclick=()=>{index=(index+rows().length-1)%rows().length;render()};
+$("next").onclick=()=>{index=(index+1)%rows().length;render()};
+$("apply-reviewer").onclick=()=>{const id=$("all-reviewer").value.trim();if(!id){alert("请先输入审核者代号");return}const fieldName=current==="extraction"?"reviewer":"reviewer_id";for(const row of state[current])row[fieldName]=id;save();render()};
+function csvCell(value){const s=String(value??"");return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s}
+function csvText(kind){const fields=kind==="extraction"?data.extractionFields:data.questionFields;return "\ufeff"+[fields.join(","),...data[kind].map((source,i)=>fields.map(field=>csvCell(EDIT[kind].includes(field)?state[kind][i][field]??source[field]:source[field])).join(","))].join("\r\n")+"\r\n"}
+$("export").onclick=()=>{const blob=new Blob([csvText(current)],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=el("a");a.href=url;a.download="reviewer_"+data.slot+"_"+(current==="extraction"?"extraction":"questions")+"_filled.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+function parseCsv(text){text=text.replace(/^\ufeff/,"");const out=[];let row=[],cell="",quoted=false;for(let i=0;i<text.length;i++){const ch=text[i];if(quoted){if(ch==='"'&&text[i+1]==='"'){cell+='"';i++}else if(ch==='"')quoted=false;else cell+=ch}else if(ch==='"')quoted=true;else if(ch===","){row.push(cell);cell=""}else if(ch==="\r"||ch==="\n"){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(cell);out.push(row);row=[];cell=""}else cell+=ch}if(quoted)throw Error("CSV 引号未闭合");if(cell||row.length){row.push(cell);out.push(row)}return out}
+$("import").onchange=async event=>{const file=event.target.files?.[0];if(!file)return;try{const parsed=parseCsv(await file.text()),kind=current,fields=kind==="extraction"?data.extractionFields:data.questionFields;
+ if(parsed.length!==data[kind].length+1||parsed[0].join("\0")!==fields.join("\0"))throw Error("列名或行数与当前审核表不一致");
+ const replacement=[];for(let i=0;i<data[kind].length;i++){const line=parsed[i+1];if(line.length!==fields.length)throw Error("第 "+(i+2)+" 行列数错误");const copy={};for(let j=0;j<fields.length;j++){const name=fields[j];if(EDIT[kind].includes(name)){if(OPTIONS[name]&&line[j]&&!OPTIONS[name].includes(line[j]))throw Error("第 "+(i+2)+" 行 "+name+" 值无效");copy[name]=line[j]}else if(line[j]!==data[kind][i][name])throw Error("第 "+(i+2)+" 行只读字段 "+name+" 已更改")}replacement.push(copy)}
+ state[kind]=replacement;save();render();alert("已导入并核对 "+replacement.length+" 行。请继续审核，完成后重新下载 CSV。")
+ }catch(error){alert("导入失败："+error.message)}finally{event.target.value=""}};
+render();
+</script>
+</body>
+</html>
