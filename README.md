@@ -1,89 +1,190 @@
-# Evidence-Grounded ABSA Agent
+# COMP7607A — Evidence-Grounded ABSA Agent 项目进度
 
-Local development of an English restaurant review analysis system for COMP7607A. The agent supports CSV loading, bounded aspect extraction, deterministic analysis tools, evidence-linked answers, A/B/C controllers, and a guarded DeepSeek path in both the CLI and Streamlit. Licensed SemEval data has been audited locally; a genuine 30-record, ten-question development Pilot has been run and compared with its previous version. Human extraction and question/reference review, formal material freeze, and formal A/B/C plus Challenge experiments remain pending.
+**最后更新：2026-11-24**
 
-## Current development Pilot
+**当前阶段：核心 Agent 系统已实现，开发集实验已完成，正在准备人工审核与正式实验。**
 
-The genuine v9 DeepSeek development Pilot completed 30/30 structural extractions and all 30 A/B/C question rows on the same 30 Train-derived reviews and ten candidate questions as v8. The offline, hash-bound comparison is available through `python -m scripts.compare_dev_pilots --help`; its local ignored JSON and per-question CSV are under `outputs/dev_pilot_scores/`. Against **unreviewed candidate references**, joint category/sentiment micro F1 changed from 0.744 (v8) to 0.711 (v9). Strict answer correctness changed from A/B/C 2/5/5 to 2/3/3 of ten; the predefined bounded metric-label rubric changed from 4/5/5 to 6/3/3. Five independently rerun extraction label sets changed, so these observations do not isolate the effect of B/C prompt changes. The 13-record human extraction review remains deferred by the user. Formal question/reference review, material freeze, and A/B/C plus Challenge holdout experiments remain pending. This Pilot did not use the formal holdout or claim human evidence relevance.
+## 一、项目简介
 
-## Set up
+本项目开发一个基于大语言模型（DeepSeek）的餐厅评论分析 Agent。
 
-Python 3.12 is required.
+系统能够：
 
-```powershell
+- 读取英文餐厅评论 CSV。
+- 识别评论涉及的方面（Food、Service、Price、Ambience 等）。
+- 判断各方面的情感（Positive、Negative、Neutral、Conflict）。
+- 提取支持判断的原文证据（Evidence）。
+- 通过工具执行数量统计、比例计算、评论筛选和比较分析。
+- 使用验证机制检查回答，必要时进行有限次数的修正。
+
+项目的研究重点是比较三种方法：
+
+| 方法     | 主要特点                                         |
+| -------- | ------------------------------------------------ |
+| Method A | Baseline：直接使用 LLM 回答                      |
+| Method B | 固定工作流：ABSA 抽取 + 确定性工具 + 回答生成    |
+| Method C | Agent 工作流：动态工具选择 + 结果验证 + 有界修正 |
+
+研究目标是分析工具调用和验证机制对回答准确性、可靠性、延迟及成本的影响。
+
+## 二、目前已完成的工作
+
+| 模块              | 状态           | 进展                                           |
+| ----------------- | -------------- | ---------------------------------------------- |
+| 数据集准备        | ✅ 已完成       | 准备 SemEval 开发集与正式测试集候选材料        |
+| ABSA 抽取         | ✅ 已实现       | 支持 Category、Sentiment 和 Evidence           |
+| Method A/B/C      | ✅ 已实现       | 三种分析工作流可运行                           |
+| 确定性分析工具    | ✅ 已实现       | 支持 Count、Rate、Selection、Comparison 等操作 |
+| Agent 验证机制    | ✅ 已实现       | 支持结构、数值、证据及结果一致性检查           |
+| DeepSeek API 集成 | ✅ 已完成       | 已成功进行真实模型调用                         |
+| 开发集 Pilot      | ✅ 已运行       | 已完成 v8、v9 真实开发集测试                   |
+| Streamlit Web UI  | 🟡 主要功能完成 | 支持 CSV 上传、抽取与单独 A/B/C 真实回答       |
+| 自动化测试        | ✅ 已通过       | 本地全量测试 244 passed                      |
+| 人工审核准备      | ✅ 已准备       | 已生成两类审核表，等待人工完成                 |
+
+**说明：** 这里的“已实现”主要表示功能已经开发并通过相应测试，不代表已经证明了正式实验中的准确率。
+
+## 三、开发集实验进展
+
+目前已完成 DeepSeek Development Pilot v9。
+
+### 实验规模
+
+- 30 条开发集评论。
+- 10 道开发集问题。
+- Method A、B、C 各回答 10 道题。
+- 共生成 30 个方法回答。
+- 共完成 98 次实际模型调用。
+
+### 实验结果
+
+- 30/30 条 ABSA 抽取结果结构有效。
+- 30/30 个方法回答已生成。
+- 27 个回答状态为 `ok`，3 个符合预期的 `insufficient_info`。
+- 完成了与上一版本 v8 的结果比较。
+- 与尚未人工确认的候选参考答案对照：类别与情感联合 micro F1 为 0.711；严格逐题正确数 A/B/C 分别为 2/10、3/10、3/10。
+
+但开发集结果也发现一些问题：
+
+- ABSA 方面分类仍可能出错。
+- 抽取错误可能影响后续统计和回答。
+- B/C 的回答正确率仍有待改善。
+- 验证机制能发现部分问题，但并不能保证答案一定正确。
+
+**重要：当前 Pilot 使用的是尚未人工确认的开发集候选参考答案，结果仅用于开发和错误分析，不能作为最终正式实验结论。**
+
+## 四、当前正在推进的工作
+
+### 1. ABSA 抽取差异人工审核
+
+**状态：⏳ 待人工完成**
+
+目前已准备 13 条开发集抽取差异，供人工审核。
+
+审核重点：
+
+- 模型是否真正预测错误。
+- SemEval Gold 是否存在标注歧义。
+- 差异是否来自程序比较问题。
+- 是否存在暂时无法确定的情况。
+
+审核结果将用于开发集错误分析。
+
+### 2. 正式候选题人工审核
+
+**状态：⏳ 待人工完成**
+
+目前正式测试材料包括：
+
+- 600 条餐厅评论。
+- 20 个 Pack，每个 Pack 30 条评论。
+- 120 道候选问题，每个 Pack 6 道。
+
+题目涵盖 Count、Rate、Selection、Comparison、Evidence Explanation 和 Insufficient Info 六种类型。
+
+人工审核需要检查：
+
+- 题目是否清晰。
+- 题目是否可以按照预期回答。
+- 统计分母定义是否正确。
+- 候选参考答案是否正确。
+
+两份独立审核结果完成后，还需要处理分歧并确认最终标准答案。
+
+**目前 120 道候选题尚未通过人工审核，也没有正式冻结。**
+
+## 五、接下来需要完成的工作
+
+| 阶段 | 工作内容                               | 当前状态 |
+| ---- | -------------------------------------- | -------- |
+| 1    | 完成两类人工审核                       | ⏳ 待完成 |
+| 2    | 比较审核结果，裁决分歧                 | ⏳ 待开始 |
+| 3    | 分析并修复开发集中的主要错误           | ⏳ 待继续 |
+| 4    | 冻结正式题目、Gold、评分规则及实验配置 | ⏳ 待开始 |
+| 5    | 完善真实正式实验 Runner                | ⏳ 待开发 |
+| 6    | 在正式测试集上运行 A/B/C               | ⏳ 待运行 |
+| 7    | 完成 40 对 Challenge 鲁棒性评估        | ⏳ 待开展 |
+| 8    | 完成 30 道问题的 Evidence 盲审         | ⏳ 待开展 |
+| 9    | 汇总准确率、调用次数、延迟和成本       | ⏳ 待开展 |
+| 10   | 完成最终报告与 Demo                    | ⏳ 待完成 |
+
+其中，真实正式实验 Runner 尚未完成；当前通用实验 Runner 仍主要用于 MOCK 测试。正式实验需要使用冻结材料、真实模型和经过验证的执行与评分流程。
+
+## 六、项目当前总结
+
+**我们已经完成了 Agent 的主要工程基础，但还没有完成正式研究评估。**
+
+目前已经能够：
+
+- 使用 DeepSeek 进行 ABSA 抽取。
+- 通过 A/B/C 三种方法回答评论分析问题。
+- 调用工具完成统计分析。
+- 检查回答并记录执行过程。
+- 在开发集上运行真实模型实验。
+
+当前最重要的工作是：
+
+**人工审核 → 分歧裁决 → 冻结正式实验材料 → 正式 A/B/C 实验 → 结果分析。**
+
+最终研究结论必须以正式实验和人工评价结果为依据，而不是仅依赖开发集 Pilot。
+
+## 七、快速启动
+
+需要 Python 3.12。以下命令适用于 Windows CMD 或 PowerShell，在仓库根目录运行：
+
+```text
 python -m venv .venv
-.\.venv\Scripts\python -m pip install -e '.[dev,ui]'
+.\.venv\Scripts\python -m pip install -e ".[dev,ui]"
 .\.venv\Scripts\python -m pytest -q
-```
-
-The `MockLLMClient` is for offline tests only. The original Proposal has now been reviewed; see [proposal alignment](docs/proposal_alignment.md), `docs/TASKS.md` and `docs/PROGRESS.md` for commitments, gaps and actual verification status.
-
-## Provider transport status
-
-`src.responses_client.ResponsesClient` implements the shared `LLMClient` contract for the official OpenAI and DeepSeek Responses endpoints. It reads `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` only when called with `allow_network=True`, sends one request without hidden retries, caps output tokens and timeout, and rejects incomplete/refused/non-JSON responses. OpenAI requests set `store=false`; DeepSeek requests set `reasoning.effort=none` to use the documented non-thinking mode for bounded JSON calls. DeepSeek's Responses API is stateless. JSON mode supplies syntax only; the existing Pydantic and source-evidence checks still validate the returned object. The transport passed local simulated-HTTP tests. A `direct-v2` live retest returned a valid answer on four synthetic reviews. The separate `src.live_cli` has a balance-gated live CSV path; the development Pilot runner has now run on real Train-derived data and retained failed B/C query parses. The Streamlit UI now has a guarded DeepSeek path for loaded CSV; the formal experiment runner remains MOCK-only. [OpenAI Responses reference](https://developers.openai.com/api/reference/resources/responses/methods/create); [DeepSeek Responses guide](https://api-docs.deepseek.com/guides/responses_api/); [DeepSeek thinking-mode controls](https://api-docs.deepseek.com/guides/thinking_mode/).
-
-For a new DeepSeek key on Windows, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\configure_deepseek.ps1` locally. The script prompts without echoing the key, checks the read-only official `/models` endpoint, and saves `DEEPSEEK_API_KEY` as a user environment variable only after authentication succeeds. Restart Codex so its processes inherit the new variable. Never paste a key into chat or commit it to the repository. This check does not send review data or run model inference. A failed check leaves any existing user key unchanged.
-
-For the user's 2026-11-23 standing authorization, bounded DeepSeek development runs no longer need a separate chat approval. `src.deepseek_balance` queries the official read-only `/user/balance` endpoint before live execution and permits a new run only if its configured cap fits within a conservative allowance that reserves at least half the account balance. The CNY safety divisor is deliberately conservative and is not presented as a market exchange rate. An unavailable, malformed or insufficient balance stops the run before any review is sent. Request, token and cost guards and unique run directories still apply. Formal holdout, another provider, public release and human review are outside this automatic authorization.
-
-## Review CSV contract
-
-The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path, text_column="review", id_column="row_id")` maps other header names explicitly. If the ID column is absent, each row receives a deterministic `auto-...` ID based on its position and text; identical review text on separate rows remains separate. An explicitly supplied ID column must be complete and unique. Extra CSV columns are accepted but are not currently used for analysis, so questions needing date, rating or customer identity cannot be answered from them yet. Empty reviews, missing fields, duplicate IDs, malformed rows and empty files are rejected rather than silently skipped.
-
-`src.live_runtime.run_model_method` connects any validated review `RecordSet` to A/B/C through an injected model client. The caller must supply record-count, input-character and conservative request ceilings before a model call. B/C can share a validated extraction dataset; A reads only raw reviews. The runtime counts attempted requests and known tokens across extraction and answering, including failed attempts. The character limit is a source-size guard, not a guaranteed provider token or fee cap. This path has passed injected-model tests and is exposed through the separate gated live CLI. The v4 real-data development Pilot exercised all 30 method-question rows, but B/C query parsing failed on every question; that behavior is preserved as a development failure, not validation success.
-
-`src.live_cost.plan_cost` additionally requires a dated price source, non-cached input/output rates, per-request token bounds and a USD cap. It refuses a declared worst-case plan above the cap. `CostLimitedClient` freezes further network requests if transport fails or measured tokens are missing/out of bounds. Its USD figure is an estimate from supplied rates, not a provider bill; an unexpectedly large first response or stale/incorrect prices can still violate the planned bound. No price or live-spend approval is embedded in this repository.
-
-`python -m src.live_cli ask --help` and `python -m src.live_cli extract --help` expose the model-backed CSV path. Both commands run a local `DRY_RUN` by default and require the file, column mapping if needed, provider/model, record/character/request/token ceilings, dated input/output prices and a USD cap. `--execute` explicitly enables network use and reads the matching key from the environment; the standing DeepSeek development authorization applies when the exact model, data scope, current prices, balance and per-run limits are checked. Other providers and formal holdout still need separate authorization. Failed/partial extraction and failed answers return a nonzero exit status. The CLI does not use demo answers or formal gold labels. The Streamlit UI has a guarded DeepSeek path; the formal experiment runner remains MOCK-only.
-
-`python -m scripts.prepare_dev_pilot` prepares a local, unreviewed candidate for a development pilot. It selects 30 records from `data/processed/dev.csv` with a fixed seed, writes ten questions and a runtime CSV under ignored `data/processed/dev_pilot/`, and keeps the independent Gold references under ignored `data/gold/dev_pilot/`. It never calls a model or reads formal test records. The generated manifest records source and output hashes; existing files are not overwritten. Any new live development plan uses the standing DeepSeek balance gate and leaves this candidate marked unreviewed.
-
-`python -m scripts.plan_dev_pilot --help` exposes a read-only preflight for that candidate. It checks hashes, dev/test ID separation, an unused run directory and a conservative full A/B/C request plan. The one-shot runner has an offline test of shared extraction, all 30 A/B/C answers, a durable call ledger, and failure stops. Its live mode requires both `--execute` and the exact plan SHA-256 via `--plan-sha256`; this flag binds configuration and is not a request for repeated chat approval under the standing DeepSeek dev authorization. The v3 and v4 runs each used separate non-reusable directories. V3 stopped at extraction coverage; v4 completed all result rows but failed its quality checks because B/C query parses were invalid. The extraction service and query parser now expose redacted structural diagnostics. The v8 Pilot now has an offline, hash-bound exploratory scorer (`python -m scripts.score_dev_pilot --help`). Its ignored report preserves strict scores and adds the versioned `bounded_aliases_v1` score for clear natural-language metric names. Both use unreviewed development references and establish neither formal accuracy nor semantic evidence relevance.
-
-The current development configuration uses `query-v4`, `answer-v6` and `decision-v5` for rates. A rate counts distinct review records: the numerator is target-negative records; `aspect_mentions` divides by records mentioning the target with any sentiment, while `all_records` divides by all scoped records. A target-negative filter is rejected before tools can shrink the denominator; a separate subgroup filter remains valid. A zero denominator returns null and rate claims use fraction units. A fresh Q03/Q04 development retest on the saved v8 extraction produced structurally valid B/C 1/3 answers with no denominator collapse. Candidate Gold is 1/4 because one service-neutral record is missing from the extraction, so this is not yet a correct Gold answer. The 13 extraction disagreements have a local provisional review sheet under ignored `outputs/extraction_review_v8_2026-11-24/`; human decisions remain blank.
-
-The three-record `extract-v1` probe stopped after six requests. Every response failed the same structural rule: `evidence` must be a JSON list. The saved result remains under ignored `outputs/live_probe/`. `extract-v2` gives an explicit JSON example and requires a list of exact review substrings. The live CSV CLI defaults to v2 and records the prompt version in its preflight; the mock evaluation retains v1 provenance. The v2 retest succeeded structurally on all three records in three requests. V4 then achieved 30/30 structural extraction coverage, although semantic and downstream answer failures remain.
-
-A 2026-11-24 read-only formal-material preflight reproduced the licensed XML-derived 150/600 split and aligned all 600 Gold IDs and texts with the processed test CSV when `load_csv(..., preserve_explicit_ids=True)` is used. One official source ID has a trailing space; the generic CSV default strips it, so formal SemEval readers must use the preservation option. The 120 candidate questions pass coverage checks, but both human review sheets are blank (960 judgments and 240 reviewer IDs missing). No formal freeze or holdout inference has occurred. The ignored integrity report is `outputs/formal_freeze_preflight_2026-11-24.json`.
-
-`python -m scripts.audit_question_review` checks the two local 120-question review sheets for missing judgments, changed source fields, reported reviewer IDs and disagreements. It never supplies human judgments or freezes the formal question set.
-
-## Offline CLI (synthetic fixture)
-
-The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.
-
-```powershell
-.\.venv\Scripts\python -m src.cli extract --input data/demo/core.csv --mock
-.\.venv\Scripts\python -m src.cli ask --method a --input data/demo/core.csv --question "What is the negative service rate?" --mock
-.\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "What is the negative service rate?" --mock
-.\.venv\Scripts\python -m src.cli ask --method c --input data/demo/core.csv --question "What is the negative service rate?" --mock
-.\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "Did negative service reviews improve over the last month?" --mock
-.\.venv\Scripts\python -m src.cli ask --method c --input data/demo/presentation.csv --question "What is the negative service rate?" --mock
-```
-
-For the four-record example, service is 2 negative records (R01/R04) / 3 mentions (R01/R03/R04) = 2/3. For the 60-entry fixture, it is 24/48 = 1/2. The date question returns `insufficient_info` because dates are absent. Method A receives all raw entries and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C uses the same extraction, parser, tools and finalizer, but a bounded mock decision loop chooses its tool calls after seeing results. Arbitrary questions, other uploaded datasets and live API execution are not configured in this CLI.
-
-## Offline run ledger
-
-```powershell
-.\.venv\Scripts\python -m eval.run_method --method b --split demo --mock
-.\.venv\Scripts\python -m eval.run_method --method c --split demo --condition repeats --mock
-```
-
-Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. The report scores the latest attempt per task while counting requests, cost and measured wall time from all retained attempts. It separates query time after extraction from full attempt time and any measured extraction time. Configuration and full task payload hashes block accidental mixing. Each actual MOCK model request also appends a stage/timing/usage row to local `model_calls.jsonl`; unknown tokens and cost remain null. The synthetic demo also exercises B/C `gold`, C `ablation`, and a separate extraction-only challenge. Formal dev/test and live provider runs remain pending. See [experiment preparation](docs/experiment_plan.md) and [data handling](docs/data_sources.md).
-
-With a request cap, the runner stops further tasks immediately if an attempt reports unknown usage or more calls than its declared upper bound; the attempt remains in the ledger for review.
-The optional MOCK cost cap uses recorded known fees plus the next task's conservative estimate. Unknown or over-bound fee stops further tasks and leaves cost unknown; no real provider pricing is configured.
-
-For a fairer B/C offline path, `scripts.prepare_shared_extraction --mock` saves one hash-bound synthetic extraction under ignored `outputs/`; pass that directory as `--shared-extraction` to both `eval.run_method` calls. The setup request count remains separate and is counted once across the comparison.
-Pass the same `--shared-extraction` directory to `scripts.summarize_runs` to validate both bindings and report the combined physical B/C request count; unknown cost stays null.
-
-## Local Streamlit demo
-
-```powershell
 .\.venv\Scripts\python -m streamlit run app.py
 ```
 
-The server binds to `127.0.0.1`. Load the four-record Proposal example or the 60-entry simulated fixture, run MOCK extraction, inspect the highest negative count and source records, select food-positive AND service-negative records, ask the displayed rate or missing-date question with A/B/C, then compare methods and traces. The 60-entry fixture is generated reproducibly with `python -m scripts.build_presentation_demo`; see the [four-minute walkthrough](docs/demo_script.md). Browser refresh restores locally saved state through a random URL token; **Clear local workspace** removes that saved state. Uploads are capped at 1 MB for CSV and 5 MB for extraction JSON. A different CSV can be paired with a separately validated `ExtractionDataset` JSON for deterministic charts/evidence; canned MOCK questions are unavailable for it. The live UI button can call DeepSeek on loaded CSV within the current official-balance and request/token limits; each click saves a fresh ignored manifest, call ledger, extraction or answer and summary under `outputs/ui_live_runs/`. The checked peak pricing is dated 2026-11-24 and the live button fails closed after seven days until the checked configuration is updated. Live extraction and A/B/C answers remain development outputs, not formal scores. The CSV text and optional ID headers can be mapped in the UI. Clearing the browser workspace does not delete separate live run traces.
+界面提供合成数据 MOCK 演示；真实 DeepSeek 调用须由使用者在本机配置自己的密钥，并通过项目的余额和请求限制。SemEval 原始数据、Gold、人工审核表和运行输出不在公开仓库内。开发集 Pilot 的数字不是正式测试成绩。
 
-The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Licensed raw data, formal gold labels, credentials, and local run outputs are ignored by Git. Synthetic demo gold/reference fixtures are tracked as test data.
+## 八、目录说明
+
+| 路径 | 用途 | GitHub 中的状态 |
+| --- | --- | --- |
+| [app.py](app.py) | Streamlit 界面入口 | 已跟踪 |
+| [src/](src/) | CSV 加载、ABSA 抽取、A/B/C 控制器、工具、验证及模型接口 | 已跟踪 |
+| [eval/](eval/) | 实验任务、指标、对照与诊断评分 | 已跟踪 |
+| [scripts/](scripts/) | 数据准备、开发集 Pilot、审核与报告辅助命令 | 已跟踪 |
+| [tests/](tests/) | 自动化测试 | 已跟踪 |
+| [docs/](docs/) | 数据来源、协议、人工审核、实验计划和历史记录 | 已跟踪 |
+| [data/demo/](data/demo/) | 明确标为合成数据的演示样例 | 已跟踪 |
+| `data/raw/`、`data/processed/`、`data/gold/`、`data/challenge/` | 授权数据与本地候选/审核材料 | Git 忽略，不公开 |
+| `outputs/` | 本地运行 trace、分数和人工审核包 | Git 忽略，不公开 |
+
+目录内的研究文件以数据来源和许可要求为准；不要把密钥、真实评论、Gold 或审核包提交到公开仓库。
+
+## 九、文档导航
+
+- [数据来源与许可](docs/data_sources.md)
+- [数据契约](docs/data_contract.md)
+- [人工标注与审核规范](docs/annotation_guide.md)
+- [13 条抽取差异的审核交接](docs/extraction_review_handoff.md)
+- [实验计划](docs/experiment_plan.md)
+- [Proposal 要求对照](docs/proposal_alignment.md)
+- [开发任务记录](docs/TASKS.md)与[验证进度记录](docs/PROGRESS.md)
+
+本 README 就是 GitHub 仓库首页的中文进度说明；正式研究结论仍须在人工审核、材料冻结和正式实验之后形成。

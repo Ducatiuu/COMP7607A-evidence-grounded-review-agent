@@ -124,5 +124,6 @@ The user's request authorizes local autonomous development. GitHub publication a
 | P6-GENUINE-DEMO | Save genuine baseline/proposed run and rehearse final presentation | P6-DEMO-SCALE, provider approval | Real saved output, truthful labels, four-minute human rehearsal | BLOCKED: provider/human work | NOT AUTHORIZED |
 
 | P7B-HUMAN-REVIEW-PACKETS | Create two independent, local reviewer ZIPs for the 13 extraction differences and 120 formal candidate questions | P7B-13-REVIEW, P7B-FORMAL-PREFLIGHT | Preserve source sheets byte-for-byte and all blank human fields; include offline browser and licensed read-only context, source hashes and no model/formal predictions; validate both ZIPs and never publish restricted data | PASS local artifacts and browser smoke; actual human judgments pending | LOCAL ONLY |
+| P7B-DOC-HOMEPAGE | Show current Chinese project progress directly in root README and explain folders | P7B-DEV-PILOT-V9, P7B-UI-LIVE | Preserve accurate Pilot limits, avoid publishing restricted data, validate Markdown links and test suite; user handles GitHub upload | PASS local docs and 244 tests; user upload pending | LOCAL ONLY |
 
 Status reflects verified work, not intention. Each module gets a separate review and test entry in `PROGRESS.md` before PASS.

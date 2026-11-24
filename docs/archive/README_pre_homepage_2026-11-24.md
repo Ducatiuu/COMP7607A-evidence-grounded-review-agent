@@ -1,0 +1,97 @@
+# README history snapshot
+
+Archived from the root README before the Chinese progress homepage on 2026-11-24. This is a historical record; status statements may be outdated. Relative links were adjusted for this archive location.
+
+Original committed README SHA-256: `2ef0be029f109b2222214dd268ff772cc116d8514291920ec68afc47b2feb9e9`.
+
+---
+
+# Evidence-Grounded ABSA Agent
+
+Local development of an English restaurant review analysis system for COMP7607A. The agent supports CSV loading, bounded aspect extraction, deterministic analysis tools, evidence-linked answers, A/B/C controllers, and a guarded DeepSeek path in both the CLI and Streamlit. Licensed SemEval data has been audited locally; a genuine 30-record, ten-question development Pilot has been run and compared with its previous version. Human extraction and question/reference review, formal material freeze, and formal A/B/C plus Challenge experiments remain pending.
+
+## Current development Pilot
+
+The genuine v9 DeepSeek development Pilot completed 30/30 structural extractions and all 30 A/B/C question rows on the same 30 Train-derived reviews and ten candidate questions as v8. The offline, hash-bound comparison is available through `python -m scripts.compare_dev_pilots --help`; its local ignored JSON and per-question CSV are under `outputs/dev_pilot_scores/`. Against **unreviewed candidate references**, joint category/sentiment micro F1 changed from 0.744 (v8) to 0.711 (v9). Strict answer correctness changed from A/B/C 2/5/5 to 2/3/3 of ten; the predefined bounded metric-label rubric changed from 4/5/5 to 6/3/3. Five independently rerun extraction label sets changed, so these observations do not isolate the effect of B/C prompt changes. The 13-record human extraction review remains deferred by the user. Formal question/reference review, material freeze, and A/B/C plus Challenge holdout experiments remain pending. This Pilot did not use the formal holdout or claim human evidence relevance.
+
+## Set up
+
+Python 3.12 is required.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -e '.[dev,ui]'
+.\.venv\Scripts\python -m pytest -q
+```
+
+The `MockLLMClient` is for offline tests only. The original Proposal has now been reviewed; see [proposal alignment](../proposal_alignment.md), `docs/TASKS.md` and `docs/PROGRESS.md` for commitments, gaps and actual verification status.
+
+## Provider transport status
+
+`src.responses_client.ResponsesClient` implements the shared `LLMClient` contract for the official OpenAI and DeepSeek Responses endpoints. It reads `OPENAI_API_KEY` or `DEEPSEEK_API_KEY` only when called with `allow_network=True`, sends one request without hidden retries, caps output tokens and timeout, and rejects incomplete/refused/non-JSON responses. OpenAI requests set `store=false`; DeepSeek requests set `reasoning.effort=none` to use the documented non-thinking mode for bounded JSON calls. DeepSeek's Responses API is stateless. JSON mode supplies syntax only; the existing Pydantic and source-evidence checks still validate the returned object. The transport passed local simulated-HTTP tests. A `direct-v2` live retest returned a valid answer on four synthetic reviews. The separate `src.live_cli` has a balance-gated live CSV path; the development Pilot runner has now run on real Train-derived data and retained failed B/C query parses. The Streamlit UI now has a guarded DeepSeek path for loaded CSV; the formal experiment runner remains MOCK-only. [OpenAI Responses reference](https://developers.openai.com/api/reference/resources/responses/methods/create); [DeepSeek Responses guide](https://api-docs.deepseek.com/guides/responses_api/); [DeepSeek thinking-mode controls](https://api-docs.deepseek.com/guides/thinking_mode/).
+
+For a new DeepSeek key on Windows, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\configure_deepseek.ps1` locally. The script prompts without echoing the key, checks the read-only official `/models` endpoint, and saves `DEEPSEEK_API_KEY` as a user environment variable only after authentication succeeds. Restart Codex so its processes inherit the new variable. Never paste a key into chat or commit it to the repository. This check does not send review data or run model inference. A failed check leaves any existing user key unchanged.
+
+For the user's 2026-11-23 standing authorization, bounded DeepSeek development runs no longer need a separate chat approval. `src.deepseek_balance` queries the official read-only `/user/balance` endpoint before live execution and permits a new run only if its configured cap fits within a conservative allowance that reserves at least half the account balance. The CNY safety divisor is deliberately conservative and is not presented as a market exchange rate. An unavailable, malformed or insufficient balance stops the run before any review is sent. Request, token and cost guards and unique run directories still apply. Formal holdout, another provider, public release and human review are outside this automatic authorization.
+
+## Review CSV contract
+
+The loader accepts UTF-8 CSV with a nonblank review text column. `load_csv(path, text_column="review", id_column="row_id")` maps other header names explicitly. If the ID column is absent, each row receives a deterministic `auto-...` ID based on its position and text; identical review text on separate rows remains separate. An explicitly supplied ID column must be complete and unique. Extra CSV columns are accepted but are not currently used for analysis, so questions needing date, rating or customer identity cannot be answered from them yet. Empty reviews, missing fields, duplicate IDs, malformed rows and empty files are rejected rather than silently skipped.
+
+`src.live_runtime.run_model_method` connects any validated review `RecordSet` to A/B/C through an injected model client. The caller must supply record-count, input-character and conservative request ceilings before a model call. B/C can share a validated extraction dataset; A reads only raw reviews. The runtime counts attempted requests and known tokens across extraction and answering, including failed attempts. The character limit is a source-size guard, not a guaranteed provider token or fee cap. This path has passed injected-model tests and is exposed through the separate gated live CLI. The v4 real-data development Pilot exercised all 30 method-question rows, but B/C query parsing failed on every question; that behavior is preserved as a development failure, not validation success.
+
+`src.live_cost.plan_cost` additionally requires a dated price source, non-cached input/output rates, per-request token bounds and a USD cap. It refuses a declared worst-case plan above the cap. `CostLimitedClient` freezes further network requests if transport fails or measured tokens are missing/out of bounds. Its USD figure is an estimate from supplied rates, not a provider bill; an unexpectedly large first response or stale/incorrect prices can still violate the planned bound. No price or live-spend approval is embedded in this repository.
+
+`python -m src.live_cli ask --help` and `python -m src.live_cli extract --help` expose the model-backed CSV path. Both commands run a local `DRY_RUN` by default and require the file, column mapping if needed, provider/model, record/character/request/token ceilings, dated input/output prices and a USD cap. `--execute` explicitly enables network use and reads the matching key from the environment; the standing DeepSeek development authorization applies when the exact model, data scope, current prices, balance and per-run limits are checked. Other providers and formal holdout still need separate authorization. Failed/partial extraction and failed answers return a nonzero exit status. The CLI does not use demo answers or formal gold labels. The Streamlit UI has a guarded DeepSeek path; the formal experiment runner remains MOCK-only.
+
+`python -m scripts.prepare_dev_pilot` prepares a local, unreviewed candidate for a development pilot. It selects 30 records from `data/processed/dev.csv` with a fixed seed, writes ten questions and a runtime CSV under ignored `data/processed/dev_pilot/`, and keeps the independent Gold references under ignored `data/gold/dev_pilot/`. It never calls a model or reads formal test records. The generated manifest records source and output hashes; existing files are not overwritten. Any new live development plan uses the standing DeepSeek balance gate and leaves this candidate marked unreviewed.
+
+`python -m scripts.plan_dev_pilot --help` exposes a read-only preflight for that candidate. It checks hashes, dev/test ID separation, an unused run directory and a conservative full A/B/C request plan. The one-shot runner has an offline test of shared extraction, all 30 A/B/C answers, a durable call ledger, and failure stops. Its live mode requires both `--execute` and the exact plan SHA-256 via `--plan-sha256`; this flag binds configuration and is not a request for repeated chat approval under the standing DeepSeek dev authorization. The v3 and v4 runs each used separate non-reusable directories. V3 stopped at extraction coverage; v4 completed all result rows but failed its quality checks because B/C query parses were invalid. The extraction service and query parser now expose redacted structural diagnostics. The v8 Pilot now has an offline, hash-bound exploratory scorer (`python -m scripts.score_dev_pilot --help`). Its ignored report preserves strict scores and adds the versioned `bounded_aliases_v1` score for clear natural-language metric names. Both use unreviewed development references and establish neither formal accuracy nor semantic evidence relevance.
+
+The current development configuration uses `query-v4`, `answer-v6` and `decision-v5` for rates. A rate counts distinct review records: the numerator is target-negative records; `aspect_mentions` divides by records mentioning the target with any sentiment, while `all_records` divides by all scoped records. A target-negative filter is rejected before tools can shrink the denominator; a separate subgroup filter remains valid. A zero denominator returns null and rate claims use fraction units. A fresh Q03/Q04 development retest on the saved v8 extraction produced structurally valid B/C 1/3 answers with no denominator collapse. Candidate Gold is 1/4 because one service-neutral record is missing from the extraction, so this is not yet a correct Gold answer. The 13 extraction disagreements have a local provisional review sheet under ignored `outputs/extraction_review_v8_2026-11-24/`; human decisions remain blank.
+
+The three-record `extract-v1` probe stopped after six requests. Every response failed the same structural rule: `evidence` must be a JSON list. The saved result remains under ignored `outputs/live_probe/`. `extract-v2` gives an explicit JSON example and requires a list of exact review substrings. The live CSV CLI defaults to v2 and records the prompt version in its preflight; the mock evaluation retains v1 provenance. The v2 retest succeeded structurally on all three records in three requests. V4 then achieved 30/30 structural extraction coverage, although semantic and downstream answer failures remain.
+
+A 2026-11-24 read-only formal-material preflight reproduced the licensed XML-derived 150/600 split and aligned all 600 Gold IDs and texts with the processed test CSV when `load_csv(..., preserve_explicit_ids=True)` is used. One official source ID has a trailing space; the generic CSV default strips it, so formal SemEval readers must use the preservation option. The 120 candidate questions pass coverage checks, but both human review sheets are blank (960 judgments and 240 reviewer IDs missing). No formal freeze or holdout inference has occurred. The ignored integrity report is `outputs/formal_freeze_preflight_2026-11-24.json`.
+
+`python -m scripts.audit_question_review` checks the two local 120-question review sheets for missing judgments, changed source fields, reported reviewer IDs and disagreements. It never supplies human judgments or freezes the formal question set.
+
+## Offline CLI (synthetic fixture)
+
+The CLI accepts the unchanged four illustrative records from the Proposal or a separate, clearly simulated 60-entry presentation fixture, and only the two exact questions below. `MOCK` in every output means the model responses are predefined test data; it does not measure model accuracy.
+
+```powershell
+.\.venv\Scripts\python -m src.cli extract --input data/demo/core.csv --mock
+.\.venv\Scripts\python -m src.cli ask --method a --input data/demo/core.csv --question "What is the negative service rate?" --mock
+.\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "What is the negative service rate?" --mock
+.\.venv\Scripts\python -m src.cli ask --method c --input data/demo/core.csv --question "What is the negative service rate?" --mock
+.\.venv\Scripts\python -m src.cli ask --method b --input data/demo/core.csv --question "Did negative service reviews improve over the last month?" --mock
+.\.venv\Scripts\python -m src.cli ask --method c --input data/demo/presentation.csv --question "What is the negative service rate?" --mock
+```
+
+For the four-record example, service is 2 negative records (R01/R04) / 3 mentions (R01/R03/R04) = 2/3. For the 60-entry fixture, it is 24/48 = 1/2. The date question returns `insufficient_info` because dates are absent. Method A receives all raw entries and the question; Method B uses the extracted fixture, shared query parse, deterministic aggregate, shared answer generation and output checks. Method C uses the same extraction, parser, tools and finalizer, but a bounded mock decision loop chooses its tool calls after seeing results. Arbitrary questions, other uploaded datasets and live API execution are not configured in this CLI.
+
+## Offline run ledger
+
+```powershell
+.\.venv\Scripts\python -m eval.run_method --method b --split demo --mock
+.\.venv\Scripts\python -m eval.run_method --method c --split demo --condition repeats --mock
+```
+
+Rows are append-only under ignored `outputs/runs/`; a matching rerun skips completed tasks. Explicit `--retry-failed` appends one more attempt for a failed/partial task. The report scores the latest attempt per task while counting requests, cost and measured wall time from all retained attempts. It separates query time after extraction from full attempt time and any measured extraction time. Configuration and full task payload hashes block accidental mixing. Each actual MOCK model request also appends a stage/timing/usage row to local `model_calls.jsonl`; unknown tokens and cost remain null. The synthetic demo also exercises B/C `gold`, C `ablation`, and a separate extraction-only challenge. Formal dev/test and live provider runs remain pending. See [experiment preparation](../experiment_plan.md) and [data handling](../data_sources.md).
+
+With a request cap, the runner stops further tasks immediately if an attempt reports unknown usage or more calls than its declared upper bound; the attempt remains in the ledger for review.
+The optional MOCK cost cap uses recorded known fees plus the next task's conservative estimate. Unknown or over-bound fee stops further tasks and leaves cost unknown; no real provider pricing is configured.
+
+For a fairer B/C offline path, `scripts.prepare_shared_extraction --mock` saves one hash-bound synthetic extraction under ignored `outputs/`; pass that directory as `--shared-extraction` to both `eval.run_method` calls. The setup request count remains separate and is counted once across the comparison.
+Pass the same `--shared-extraction` directory to `scripts.summarize_runs` to validate both bindings and report the combined physical B/C request count; unknown cost stays null.
+
+## Local Streamlit demo
+
+```powershell
+.\.venv\Scripts\python -m streamlit run app.py
+```
+
+The server binds to `127.0.0.1`. Load the four-record Proposal example or the 60-entry simulated fixture, run MOCK extraction, inspect the highest negative count and source records, select food-positive AND service-negative records, ask the displayed rate or missing-date question with A/B/C, then compare methods and traces. The 60-entry fixture is generated reproducibly with `python -m scripts.build_presentation_demo`; see the [four-minute walkthrough](../demo_script.md). Browser refresh restores locally saved state through a random URL token; **Clear local workspace** removes that saved state. Uploads are capped at 1 MB for CSV and 5 MB for extraction JSON. A different CSV can be paired with a separately validated `ExtractionDataset` JSON for deterministic charts/evidence; canned MOCK questions are unavailable for it. The live UI button can call DeepSeek on loaded CSV within the current official-balance and request/token limits; each click saves a fresh ignored manifest, call ledger, extraction or answer and summary under `outputs/ui_live_runs/`. The checked peak pricing is dated 2026-11-24 and the live button fails closed after seven days until the checked configuration is updated. Live extraction and A/B/C answers remain development outputs, not formal scores. The CSV text and optional ID headers can be mapped in the UI. Clearing the browser workspace does not delete separate live run traces.
+
+The local development plan is in `CODEX-v2.5.md`; repository constraints are in `AGENTS-v2.5.md`. Licensed raw data, formal gold labels, credentials, and local run outputs are ignored by Git. Synthetic demo gold/reference fixtures are tracked as test data.
