@@ -77,10 +77,10 @@ def _start_here(slot: int, review_guide: str) -> bytes:
 
 ## 两项独立审核与提交
 
-1. **抽取差异：13 条。** 导入抽取 CSV 后，对照原文、Gold、模型预测和原始差异 JSON，选择 `human_decision` 并填写 `human_reason`。`no_issue` 表示差异确实存在、但两种标注都可接受且无需进一步裁决；`no_error` 只表示程序比较或数据对齐错误。页面自动填写审核者 `R{slot}`，在该条首次完成时记录本机日期 `reviewed_at`。后续编辑保留首次完成日期；若删除判断或理由，状态回到“未完成”，旧日期仍保留。
-2. **正式候选题：120 题，20 包 × 每包 6 题。** 导入题目 CSV 后，按 Pack 核对评论、Gold、题目与候选参考答案。填写四项 `yes/no` 判断；若选 `no`，必须在修改建议或备注中说明。非 Rate 题的分母显示 N/A，导出 CSV 时 `denominator_ok=yes` 仅表示不适用；Rate 题仍需检查分母及零分母。设计为不可回答的题，若缺失条件确实明确，`answerability_ok` 可填 `yes`。
+1. **抽取差异：13 条。** 导入抽取 CSV 后，对照原文、Gold、模型预测和原始差异 JSON，选择 `human_decision`。`no_issue` 表示差异确实存在、但两种标注都可接受且无需进一步裁决；选它时 `human_reason` 可以留空。`no_error` 只表示程序比较或数据对齐错误，须填写理由；其余问题判断也须填写理由。页面自动填写审核者 `R{slot}`，在该条首次完成时记录本机日期 `reviewed_at`。后续编辑保留首次完成日期；清空必填判断或理由会回到“未完成”，旧日期仍保留。
+2. **正式候选题：120 题，20 包 × 每包 6 题。** 导入题目 CSV 后，按 Pack 核对评论、Gold、题目与候选参考答案。填写四项 `yes/no` 判断；全部为 `yes` 时修改建议和备注可留空。若选 `no`，必须在修改建议或备注中说明。非 Rate 题的分母显示 N/A，导出 CSV 时 `denominator_ok=yes` 仅表示不适用；Rate 题仍需检查分母及零分母。设计为不可回答的题，若缺失条件确实明确，`answerability_ok` 可填 `yes`。
 
-“已完成”仅表示必填字段完整，**不代表判断通过**；问题项同时标为“待复核”。**每次离开前须分别点击“下载当前 CSV”**，把两份 CSV 交回负责人。页面不会自动恢复未导出的编辑；重新导入时会检查只读列与审核者身份。不要修改 ID、评论、Gold、问题、参考答案和 SHA 列，也不要查看正式 A/B/C 预测。两名 Reviewer 须独立完成，不互看答案；分歧由负责人另行裁决，不覆盖原表。
+“已完成”仅表示必填字段完整，**不代表判断通过**。“待复核”表示已完成但仍需负责人检查：正式题目有 `no`，或抽取差异选择 `annotation_ambiguity`、`both_or_mixed`、`no_error`、`unresolved`；`no_issue` 不属于待复核。**每次离开前须分别点击“下载当前 CSV”**，把两份 CSV 交回负责人。页面不会自动恢复未导出的编辑；重新导入时会检查只读列与审核者身份。不要修改 ID、评论、Gold、问题、参考答案和 SHA 列，也不要查看正式 A/B/C 预测。两名 Reviewer 须独立完成，不互看答案；分歧由负责人另行裁决，不覆盖原表。
 
 `readonly/` 保留只读核对来源。`test.csv`、`test_gold.json`、`candidate_references.json` 均为本地受限材料；`MANIFEST.json` 记录各文件 SHA-256。浏览页从 Gold 标签按评论 ID 显示辅助计数，供你逐项复核，**不会自动做审核判断**。浏览页展示的参考答案是未审核候选，不是已冻结 Gold。打开网页不会把任何材料发到网络。请参照 `readonly/annotation_guide.md` 和 SemEval 官方标注指南判断 neutral、conflict 与隐含方面。
 

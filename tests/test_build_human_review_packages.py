@@ -68,6 +68,8 @@ def test_reviewer_handoff_contains_full_guide_without_old_identity_steps():
     assert "分母显示 N/A" in handoff
     assert "必须导入本包内对应的 CSV" in handoff
     assert "no_issue" in handoff
+    assert "选它时 `human_reason` 可以留空" in handoff
+    assert "全部为 `yes` 时修改建议和备注可留空" in handoff
 
 
 def test_reviewer_handoff_refuses_guide_without_expected_section():

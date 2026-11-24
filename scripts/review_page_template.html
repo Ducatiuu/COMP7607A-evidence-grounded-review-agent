@@ -47,6 +47,7 @@ details{margin:.5rem 0}summary{cursor:pointer;color:#174584}
 <span id="import-help" class="muted"></span>
 <span id="progress" class="badge"></span><span id="item-status" class="status"></span>
 </div>
+<small>“待复核”表示已完成但仍需负责人检查：正式题目有 no，或抽取差异选择 annotation_ambiguity、both_or_mixed、no_error、unresolved。no_issue 不属于待复核。</small>
 <div id="content"></div>
 <section class="muted"><small>候选参考答案仅供审核，尚未冻结。页面不运行模型、不自动填写 yes/no 或差异结论。导入文件必须保持所有只读列原样。</small></section>
 </main>
@@ -71,7 +72,7 @@ function card(parent,title,content){const block=el("div",undefined,"card");block
 function today(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
 function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s||""))return false;const [y,m,d]=s.split("-").map(Number),actual=new Date(y,m-1,d);return actual.getFullYear()===y&&actual.getMonth()===m-1&&actual.getDate()===d}
 function reviewStatus(kind,i){const row=state[kind][i];let complete,review=false;
- if(kind==="extraction"){complete=OPTIONS.human_decision.includes(row.human_decision)&&Boolean((row.human_reason||"").trim())&&row.reviewer===REVIEWER&&validDate(row.reviewed_at);review=complete&&!(["model_error","no_issue"].includes(row.human_decision))}
+ if(kind==="extraction"){complete=OPTIONS.human_decision.includes(row.human_decision)&&(row.human_decision==="no_issue"||Boolean((row.human_reason||"").trim()))&&row.reviewer===REVIEWER&&validDate(row.reviewed_at);review=complete&&!(["model_error","no_issue"].includes(row.human_decision))}
  else{complete=row.reviewer_id===REVIEWER&&JUDGMENTS.every(field=>OPTIONS[field].includes(row[field]))&&
   (data.questions[i].task_type==="rate"||row.denominator_ok==="yes")&&
   (!JUDGMENTS.some(field=>row[field]==="no")||Boolean((row.notes||"").trim()||(row.proposed_edit||"").trim()));
@@ -89,11 +90,11 @@ function field(parent,name,label){const holder=el("div");const caption=el("label
  parent.append(holder);
 }
 function onEdit(name,input){const row=state[current][index];row[name]=input.value;
- if(current==="extraction"&&OPTIONS.human_decision.includes(row.human_decision)&&(row.human_reason||"").trim()&&!validDate(row.reviewed_at))row.reviewed_at=today();
+ if(current==="extraction"&&OPTIONS.human_decision.includes(row.human_decision)&&(row.human_decision==="no_issue"||(row.human_reason||"").trim())&&!validDate(row.reviewed_at))row.reviewed_at=today();
  progress();}
 function renderExtraction(root,row){root.append(el("h2","抽取差异 · "+row.record_id));root.append(el("p",row.review_text));
  const grid=el("div",undefined,"grid");card(grid,"SemEval Gold",pretty(row.gold_aspects));card(grid,"Model prediction",pretty(row.predicted_aspects));card(grid,"Detected differences",pretty(row.differences));root.append(grid);
- const form=el("section");form.append(el("h3","人工判断"));for(const [name,label] of [["human_decision","判断类型"],["human_reason","判断理由（请引用原文依据）"]])field(form,name,label);
+ const form=el("section");form.append(el("h3","人工判断"));for(const [name,label] of [["human_decision","判断类型"],["human_reason","判断理由（no_issue 可留空；其他判断请引用原文依据）"]])field(form,name,label);
  const dateNote=el("small","");dateNote.id="date-note";form.append(dateNote);root.append(form);
 }
 function goldSummary(row,ids,gold){const aspects=id=>gold.get(id)?.aspects??[];
@@ -118,7 +119,7 @@ function renderQuestion(root,row){root.append(el("h2",row.question_id+" · "+row
  const form=el("section");form.append(el("h3","人工审核结论 · "+REVIEWER));for(const [name,label] of [["wording_ok","表述清晰"],["answerability_ok","可按预期回答"]])field(form,name,label);
  if(row.task_type==="rate")field(form,"denominator_ok","分母定义正确（含零分母处理）");
  else form.append(el("p","分母不适用（N/A）；导出 CSV 时按协议记录 denominator_ok=yes，仅表示不适用。","muted"));
- for(const [name,label] of [["reference_ok","参考答案正确"],["proposed_edit","修改建议（如有）"],["notes","理由与核算记录（有 no 时必填说明或建议）"]])field(form,name,label);root.append(form);
+ for(const [name,label] of [["reference_ok","参考答案正确"],["proposed_edit","修改建议（有问题时填写）"],["notes","理由与核算记录（全部 yes 可留空；有 no 时须填写说明或建议）"]])field(form,name,label);root.append(form);
 }
 function visibleIndices(ignoreStatus=false){const pack=$("pack-filter").value,type=$("type-filter").value,filter=ignoreStatus?"all":$("status-filter").value;
  if(!loaded[current])return [];

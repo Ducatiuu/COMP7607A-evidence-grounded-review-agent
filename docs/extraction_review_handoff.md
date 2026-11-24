@@ -4,7 +4,7 @@ This review concerns **development data only**. The source CSV and JSON live in 
 
 Two separate blank files, `reviewer_1.csv` and `reviewer_2.csv`, are ready for group members. They omit the agent's provisional classification and reason so each reviewer can judge independently. Each contains the same 13 original texts, Gold labels, model labels, and mechanically identified differences. They have no filled human decisions.
 
-For every row, fill `human_decision`, `human_reason`, `reviewer`, and `reviewed_at`. Use one of these exact decision values:
+For every row, fill `human_decision`; the browser fills `reviewer` and `reviewed_at`. `human_reason` may remain blank only for `no_issue`. Use one of these exact decision values:
 
 | Value | Meaning |
 | --- | --- |
@@ -12,7 +12,7 @@ For every row, fill `human_decision`, `human_reason`, `reviewer`, and `reviewed_
 | `annotation_ambiguity` | The source text reasonably supports both readings or the Gold label itself needs adjudication. |
 | `both_or_mixed` | The row contains multiple differences with different causes. Explain each in `human_reason`. |
 | `no_error` | The listed difference is a comparison or source-alignment mistake. Identify it. |
-| `no_issue` | The listed difference is real, but both label interpretations are acceptable under the annotation rules and no further ruling is needed. Explain why. |
+| `no_issue` | The listed difference is real, but both label interpretations are acceptable under the annotation rules and no further ruling is needed. A reason is optional. |
 | `unresolved` | The reviewer cannot decide from the text and annotation guidelines. State what is missing. |
 
 Use the original sentence and SemEval annotation guidelines linked from the [official task page](https://alt.qcri.org/semeval2014/task4/index.php?id=data-and-tools), especially for neutral facts, overall experience (`anecdotes/miscellaneous`), and cross-aspect sentiment. Do not assume that either Gold or the model is always right. Record a short source-based reason; avoid changing `record_id`, `review_text`, `gold_aspects`, `predicted_aspects`, or `differences`. Use a reviewer identifier rather than private contact information. Keep the two files separate until both reviewers finish. Any disagreements should be discussed and recorded as a separate adjudication, not silently overwritten in either reviewer's sheet.
