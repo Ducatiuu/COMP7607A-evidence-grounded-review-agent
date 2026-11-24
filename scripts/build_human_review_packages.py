@@ -73,14 +73,14 @@ def _start_here(slot: int, review_guide: str) -> bytes:
     explanations = review_guide.split(marker, 1)[0].strip()
     return f"""# 人工审核包：Reviewer {slot}（R{slot}）
 
-这份包仅给第 {slot} 位有权使用 SemEval 数据的组员；不要上传 GitHub、云盘公开链接或转发给无授权者。**请先解压，再用 Chrome 或 Edge 双击打开 `review.html`。**页面已内置全部待审核材料，无需先导入 CSV、联网、安装软件或调用模型。`导入已填 CSV` 仅用于恢复进度。
+这份包仅给第 {slot} 位有权使用 SemEval 数据的组员；不要上传 GitHub、云盘公开链接或转发给无授权者。**请先解压，再用 Chrome 或 Edge 双击打开 `review.html`。必须导入本包内对应的 CSV 才能开始审核。**首次审核导入 `01_extraction/reviewer_{slot}.csv` 或 `02_questions/reviewer_{slot}.csv`；下次继续时导入自己上次下载的已填 CSV。无需联网、安装软件或调用模型。
 
 ## 两项独立审核与提交
 
-1. **抽取差异：13 条。** 对照原文、Gold 和模型预测，选择 `human_decision` 并填写 `human_reason`。页面自动填写审核者 `R{slot}`，在该条首次完成时记录本机日期 `reviewed_at`。后续编辑保留首次完成日期；若删除判断或理由，状态回到“未完成”，旧日期仍保留。
-2. **正式候选题：120 题，20 包 × 每包 6 题。** 按 Pack 核对评论、Gold、题目与候选参考答案。填写四项 `yes/no` 判断；若选 `no`，必须在修改建议或备注中说明。非 Rate 题的分母显示 N/A，导出 CSV 时 `denominator_ok=yes` 仅表示不适用；Rate 题仍需检查分母及零分母。设计为不可回答的题，若缺失条件确实明确，`answerability_ok` 可填 `yes`。
+1. **抽取差异：13 条。** 导入抽取 CSV 后，对照原文、Gold、模型预测和原始差异 JSON，选择 `human_decision` 并填写 `human_reason`。`no_issue` 表示差异确实存在、但两种标注都可接受且无需进一步裁决；`no_error` 只表示程序比较或数据对齐错误。页面自动填写审核者 `R{slot}`，在该条首次完成时记录本机日期 `reviewed_at`。后续编辑保留首次完成日期；若删除判断或理由，状态回到“未完成”，旧日期仍保留。
+2. **正式候选题：120 题，20 包 × 每包 6 题。** 导入题目 CSV 后，按 Pack 核对评论、Gold、题目与候选参考答案。填写四项 `yes/no` 判断；若选 `no`，必须在修改建议或备注中说明。非 Rate 题的分母显示 N/A，导出 CSV 时 `denominator_ok=yes` 仅表示不适用；Rate 题仍需检查分母及零分母。设计为不可回答的题，若缺失条件确实明确，`answerability_ok` 可填 `yes`。
 
-“已完成”仅表示必填字段完整，**不代表判断通过**；问题项同时标为“待复核”。浏览页会在这台电脑的浏览器本地保存编辑进度。**每次离开前仍须分别点击“下载当前 CSV”**，把两份 CSV 交回负责人；浏览器本地存储不能代替交付文件。重新导入时会检查只读列与审核者身份。不要修改 ID、评论、Gold、问题、参考答案和 SHA 列，也不要查看正式 A/B/C 预测。两名 Reviewer 须独立完成，不互看答案；分歧由负责人另行裁决，不覆盖原表。
+“已完成”仅表示必填字段完整，**不代表判断通过**；问题项同时标为“待复核”。**每次离开前须分别点击“下载当前 CSV”**，把两份 CSV 交回负责人。页面不会自动恢复未导出的编辑；重新导入时会检查只读列与审核者身份。不要修改 ID、评论、Gold、问题、参考答案和 SHA 列，也不要查看正式 A/B/C 预测。两名 Reviewer 须独立完成，不互看答案；分歧由负责人另行裁决，不覆盖原表。
 
 `readonly/` 保留只读核对来源。`test.csv`、`test_gold.json`、`candidate_references.json` 均为本地受限材料；`MANIFEST.json` 记录各文件 SHA-256。浏览页从 Gold 标签按评论 ID 显示辅助计数，供你逐项复核，**不会自动做审核判断**。浏览页展示的参考答案是未审核候选，不是已冻结 Gold。打开网页不会把任何材料发到网络。请参照 `readonly/annotation_guide.md` 和 SemEval 官方标注指南判断 neutral、conflict 与隐含方面。
 

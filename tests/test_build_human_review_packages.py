@@ -66,6 +66,8 @@ def test_reviewer_handoff_contains_full_guide_without_old_identity_steps():
     assert "手动填写审核代号" not in handoff
     assert "首次完成日期" in handoff
     assert "分母显示 N/A" in handoff
+    assert "必须导入本包内对应的 CSV" in handoff
+    assert "no_issue" in handoff
 
 
 def test_reviewer_handoff_refuses_guide_without_expected_section():
