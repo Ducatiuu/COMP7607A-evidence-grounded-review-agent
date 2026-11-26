@@ -105,8 +105,9 @@ def build_plan(*, lock_path: Path, split_path: Path, test_csv: Path, dev_csv: Pa
                max_cost_usd: str, input_usd_per_million: str,
                output_usd_per_million: str, price_source: str, price_date: str,
                timeout_seconds: float, release_path: Path | None = None,
-               adjudication_path: Path | None = None) -> dict:
-    if run_dir.exists():
+               adjudication_path: Path | None = None,
+               allow_existing_run_dir: bool = False) -> dict:
+    if run_dir.exists() and not allow_existing_run_dir:
         raise ValueError("run directory already exists")
     if provider != "deepseek" or model != "deepseek-flash":
         raise ValueError("formal model must match the declared DeepSeek configuration")
