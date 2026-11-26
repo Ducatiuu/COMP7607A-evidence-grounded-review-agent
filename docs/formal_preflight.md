@@ -1,5 +1,7 @@
 # Four-Pack formal experiment: Plan/Preflight only
 
+This page records the original Stage 1 candidate gate. A later local final version is described in [formal_freeze_stage4.md](formal_freeze_stage4.md); the original candidate lock and plan remain unchanged.
+
 Stage 1 validates the fixed P01/P06/P11/P16 candidate set. It does not execute Method A/B/C, contact DeepSeek, need an API key, score formal results, or freeze human review. `scripts/plan_formal_experiment.py` is separate from the development Pilot and MOCK runner.
 
 ## Locked inputs and checks

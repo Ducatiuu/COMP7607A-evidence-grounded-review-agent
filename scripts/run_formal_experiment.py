@@ -18,6 +18,7 @@ from decimal import Decimal
 from pathlib import Path
 
 from eval.questions import QuestionCandidate
+from scripts.plan_final_formal_experiment import build_final_plan
 from scripts.plan_formal_experiment import build_plan
 from scripts.run_dev_pilot import _append_json, _durable_json, _GuardProxy
 from src.absa_service import ExtractionService
@@ -74,7 +75,9 @@ def checked_plan(plan_path: Path, inputs: FormalInputs, *, resume: bool = False)
     if not isinstance(saved, dict):
         raise ValueError("formal plan must be an object")
     try:
-        fresh = build_plan(
+        lock = json.loads(inputs.lock_path.read_text(encoding="utf-8"))
+        builder = build_final_plan if lock.get("schema_version") == 2 else build_plan
+        fresh = builder(
             lock_path=inputs.lock_path, split_path=inputs.split_path,
             test_csv=inputs.test_csv, dev_csv=inputs.dev_csv,
             questions_path=inputs.questions_path, references_path=inputs.references_path,
@@ -264,6 +267,8 @@ def run_formal(plan_path: Path, inputs: FormalInputs, *, client: LLMClient,
     if max_tasks is not None and (type(max_tasks) is not int or max_tasks < 1 or mode == "LIVE"):
         raise ValueError("max_tasks is available only for positive offline checks")
     plan = checked_plan(plan_path, inputs, resume=resume)
+    if mode == "LIVE":
+        _require_fresh_formal_price(plan)
     run_dir = Path(plan["planned_run_directory"])
     tasks = _tasks(plan)
     cost = _cost_plan(plan)
@@ -421,6 +426,14 @@ def run_formal(plan_path: Path, inputs: FormalInputs, *, client: LLMClient,
     return json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
 
 
+def _require_fresh_formal_price(plan: dict) -> None:
+    source = plan["price_source"].lower()
+    if "assumption" in source or "historical" in source:
+        raise ValueError("formal live pricing must be independently refreshed from an official source")
+    if (date.today() - date.fromisoformat(plan["price_date"])).days not in range(0, 8):
+        raise ValueError("formal price assumptions must be refreshed within seven days")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Formal A/B/C runner; dry precheck by default")
     parser.add_argument("--plan", required=True)
@@ -458,10 +471,9 @@ def main(argv: list[str] | None = None) -> int:
             return 0
         if not args.authorize_formal_live or args.plan_sha256 != plan["plan_sha256"]:
             raise ValueError("live formal run requires explicit authorization and exact plan hash")
+        _require_fresh_formal_price(plan)
         if not os.environ.get("DEEPSEEK_API_KEY"):
             raise ValueError("DEEPSEEK_API_KEY is unavailable")
-        if (date.today() - date.fromisoformat(plan["price_date"])).days not in range(0, 8):
-            raise ValueError("formal price assumptions must be refreshed within seven days")
         require_dev_run_balance(plan["max_cost_usd"])
         client = ResponsesClient("deepseek", plan["model"],
                                  max_output_tokens=plan["max_output_tokens_per_request"],
