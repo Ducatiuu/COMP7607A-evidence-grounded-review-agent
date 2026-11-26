@@ -83,7 +83,7 @@ function progress(){const statuses=data[current].map((_,i)=>reviewStatus(current
  const s=reviewStatus(current,index),label=$("item-status");label.textContent=s.complete?(s.review?"当前：已完成 · 待复核":"当前：已完成"):"当前：未完成";label.classList.toggle("review",s.review);
  const dateNote=$("date-note");if(dateNote)dateNote.textContent="审核者 "+REVIEWER+"；首次完成日期 "+(state.extraction[index].reviewed_at||"尚未记录")+"。再次编辑保留首次完成日期。";}
 function field(parent,name,label){const holder=el("div");const caption=el("label",label);holder.append(caption);let input;
- if(OPTIONS[name]){input=el("select");input.append(el("option","-- 请选择 --"));input.firstChild.value="";for(const option of OPTIONS[name]){const item=el("option",option);item.value=option;input.append(item)}}
+ if(OPTIONS[name]){input=el("select");const yesNo=JUDGMENTS.includes(name);input.append(el("option",yesNo?"-- Select --":"-- 请选择 --"));input.firstChild.value="";for(const option of OPTIONS[name]){const item=el("option",yesNo?option[0].toUpperCase()+option.slice(1):option);item.value=option;input.append(item)}}
  else if(name==="human_reason"||name==="proposed_edit"||name==="notes")input=el("textarea");
  else {input=el("input");input.type="text";input.maxLength=120;}
  input.value=value(name);caption.append(input);input.addEventListener("input",()=>onEdit(name,input));

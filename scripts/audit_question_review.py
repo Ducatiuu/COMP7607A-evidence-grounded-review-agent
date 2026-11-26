@@ -55,8 +55,9 @@ def _read_sheet(path: Path, questions: list[QuestionCandidate],
 
 
 def audit_review_sheets(questions: list[QuestionCandidate], references: list[GoldReference],
-                        sheet_1: Path, sheet_2: Path) -> dict:
-    audit = audit_candidate_questions(questions, references)
+                        sheet_1: Path, sheet_2: Path, *, expected_packs: int = 20) -> dict:
+    audit = (audit_candidate_questions(questions, references) if expected_packs == 20
+             else audit_candidate_questions(questions, references, expected_packs=expected_packs))
     if audit["coverage_gaps"]:
         raise ValueError("candidate question coverage has gaps")
     by_id = {item.question_id: item for item in references}
@@ -92,15 +93,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--questions", default="data/processed/candidate_questions.json")
     parser.add_argument("--references", default="data/gold/candidate_references.json")
     parser.add_argument("--sheets-root", default="data/gold/question_review")
+    parser.add_argument("--expected-packs", type=int, default=20)
     args = parser.parse_args(argv)
     questions = [QuestionCandidate.model_validate(item) for item in
                  json.loads(Path(args.questions).read_text(encoding="utf-8"))]
     references = [GoldReference.model_validate(item) for item in
                   json.loads(Path(args.references).read_text(encoding="utf-8"))]
-    question_audit = audit_candidate_questions(questions, references)
+    question_audit = (audit_candidate_questions(questions, references) if args.expected_packs == 20
+                      else audit_candidate_questions(questions, references,
+                                                     expected_packs=args.expected_packs))
     sheet_dir = Path(args.sheets_root) / question_audit["questions_sha256"][:12]
     result = audit_review_sheets(questions, references,
-                                 sheet_dir / "reviewer_1.csv", sheet_dir / "reviewer_2.csv")
+                                 sheet_dir / "reviewer_1.csv", sheet_dir / "reviewer_2.csv",
+                                 expected_packs=args.expected_packs)
     print(json.dumps(result, ensure_ascii=False))
     return 0 if result["status"] == "REPORTED_READY_FOR_MAINTAINER_REVIEW" else 2
 

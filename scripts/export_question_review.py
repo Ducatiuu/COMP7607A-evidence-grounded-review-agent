@@ -27,13 +27,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--questions", default="data/processed/candidate_questions.json")
     parser.add_argument("--references", default="data/gold/candidate_references.json")
     parser.add_argument("--out", default="data/gold/question_review")
+    parser.add_argument("--expected-packs", type=int, default=20)
     args = parser.parse_args(argv)
 
     questions = [QuestionCandidate.model_validate(item) for item in
                  json.loads(Path(args.questions).read_text(encoding="utf-8"))]
     references = [GoldReference.model_validate(item) for item in
                   json.loads(Path(args.references).read_text(encoding="utf-8"))]
-    audit = audit_candidate_questions(questions, references)
+    audit = audit_candidate_questions(questions, references,
+                                      expected_packs=args.expected_packs)
     if audit["coverage_gaps"]:
         raise ValueError("candidate coverage gaps must be resolved before human review export")
 
