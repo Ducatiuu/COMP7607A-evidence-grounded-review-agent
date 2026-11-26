@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ABSA 抽取差异独立审核</title>
+<style>
+:root{font:16px/1.55 system-ui,-apple-system,"Microsoft YaHei",sans-serif;color:#14213d;background:#f4f6fa}
+*{box-sizing:border-box}body{margin:0}header{background:#132444;color:#fff;padding:1rem max(1rem,calc((100vw - 1100px)/2))}
+header h1{margin:.1rem 0;font-size:1.5rem}header p{margin:.2rem 0;color:#d6e4fa}
+main{max-width:1100px;margin:auto;padding:1rem}.toolbar{display:flex;gap:.7rem;align-items:center;flex-wrap:wrap;background:#fff;padding:1rem;border-radius:10px;margin-bottom:1rem}
+button,select,textarea,input{font:inherit}button{border:1px solid #2a5db0;background:#fff;color:#174584;border-radius:7px;padding:.4rem .7rem;cursor:pointer}
+button:disabled,select:disabled{opacity:.5;cursor:default}button:focus,select:focus,textarea:focus,input:focus{outline:2px solid #f3a712}
+select,textarea{padding:.4rem;border:1px solid #aebbd0;border-radius:6px;background:#fff;max-width:100%}
+textarea{width:100%;min-height:5rem}label{display:block;font-weight:600;margin:.7rem 0 .2rem}
+section,.card{background:#fff;border:1px solid #d9e1ed;border-radius:9px;padding:1rem;margin:.8rem 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.8rem}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f4f6fa;padding:.8rem;border-radius:6px}
+.notice{border-left:5px solid #e69b0c;background:#fff9e9}.muted,small{color:#526078}.review{color:#9a5800}
+@media(max-width:700px){header,main{padding:1rem}}
+</style>
+</head>
+<body>
+<header><h1>ABSA 独立人工审核 · <span id="reviewer-label"></span></h1><p>13 条开发集抽取差异</p></header>
+<main>
+<section class="notice">先阅读同包的 START_HERE_ZH.md，再导入本包的 CSV。每次离开前点击“下载当前 CSV”；页面不会自动恢复未下载的修改。</section>
+<div class="toolbar">
+<label for="import">导入审核 CSV</label><input id="import" type="file" accept=".csv,text/csv">
+<span id="import-status" class="muted">尚未导入</span>
+</div>
+<div class="toolbar">
+<label for="item-select">当前评论</label><select id="item-select" disabled></select>
+<button id="previous" type="button" disabled>上一条</button>
+<button id="next" type="button" disabled>下一条</button>
+<button id="next-incomplete" type="button" disabled>下一条未完成</button>
+<label for="status-filter">状态</label><select id="status-filter" disabled>
+<option value="all">全部</option><option value="incomplete">未完成</option>
+<option value="complete">已完成</option><option value="review">待复核</option></select>
+<button id="export" type="button" disabled>下载当前 CSV</button>
+<span id="progress"></span><span id="item-status"></span>
+</div>
+<div id="content"><section>请先导入 <span id="expected-file"></span>。</section></div>
+<small>“待复核”表示该条已完成，但负责人还需检查。页面不自动判断模型或 Gold 是否正确。</small>
+</main>
+<script type="application/json" id="review-data">__REVIEW_DATA__</script>
+<script>
+"use strict";
+const packet=JSON.parse(document.getElementById("review-data").textContent);
+const SLOT=packet.slot,REVIEWER="R"+SLOT,FIELDS=packet.fields,SOURCE=packet.rows;
+const EDIT=new Set(["human_decision","human_reason","reviewer","reviewed_at"]);
+const OPTIONS=["model_error","annotation_ambiguity","both_or_mixed","false_discrepancy","no_issue","unresolved"];
+let loaded=false,index=0;
+let state=SOURCE.map(()=>({reviewer:REVIEWER}));
+const $=id=>document.getElementById(id);
+function el(tag,value,cls){const node=document.createElement(tag);if(value!==undefined)node.textContent=String(value);if(cls)node.className=cls;return node}
+$("reviewer-label").textContent="Reviewer "+SLOT+"（"+REVIEWER+"）";
+$("expected-file").textContent="01_extraction/reviewer_"+SLOT+".csv";
+function today(){const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-")}
+function validDate(s){if(!/^\d{4}-\d{2}-\d{2}$/.test(s||""))return false;const [y,m,d]=s.split("-").map(Number),actual=new Date(y,m-1,d);return actual.getFullYear()===y&&actual.getMonth()===m-1&&actual.getDate()===d}
+function status(i){const row=state[i],complete=OPTIONS.includes(row.human_decision)&&
+  (row.human_decision==="no_issue"||Boolean((row.human_reason||"").trim()))&&
+  row.reviewer===REVIEWER&&validDate(row.reviewed_at);
+ return {complete,review:complete&&!(["model_error","no_issue"].includes(row.human_decision))}}
+function visible(){const filter=$("status-filter").value;return SOURCE.flatMap((_,i)=>{const s=status(i);
+ if(filter==="incomplete"&&s.complete||filter==="complete"&&!s.complete||filter==="review"&&!s.review)return [];return [i]})}
+function progress(){const all=SOURCE.map((_,i)=>status(i)),done=all.filter(s=>s.complete).length,pending=all.filter(s=>s.review).length;
+ $("progress").textContent="总数 13 · 已完成 "+done+" · 未完成 "+(13-done)+" · 待复核 "+pending;
+ const s=status(index),label=$("item-status");label.textContent=s.complete?(s.review?"当前：已完成 · 待复核":"当前：已完成"):"当前：未完成";
+ label.classList.toggle("review",s.review);
+ const note=$("date-note");if(note)note.textContent="审核者 "+REVIEWER+"；首次完成日期 "+(state[index].reviewed_at||"尚未记录")}
+function pretty(raw){try{return JSON.stringify(JSON.parse(raw),null,2)}catch(_){return raw}}
+function card(parent,title,content){const block=el("div",undefined,"card");block.append(el("h3",title),el("pre",content));parent.append(block)}
+function onEdit(field,input){const row=state[index];row[field]=input.value;
+ if(OPTIONS.includes(row.human_decision)&&(row.human_decision==="no_issue"||(row.human_reason||"").trim())&&!validDate(row.reviewed_at))row.reviewed_at=today();
+ progress()}
+function renderRecord(root,i){const source=SOURCE[i],row=state[i];root.append(el("h2","抽取差异 · "+source.record_id),el("p",source.review_text));
+ const grid=el("div",undefined,"grid");card(grid,"SemEval Gold",pretty(source.gold_aspects));
+ card(grid,"Model prediction",pretty(source.predicted_aspects));card(grid,"Detected differences",pretty(source.differences));root.append(grid);
+ const form=el("section");form.append(el("h3","人工判断"));
+ const decisionLabel=el("label","判断类型"),decision=el("select");decision.append(el("option","-- 请选择 --"));decision.firstChild.value="";
+ for(const choice of OPTIONS){const option=el("option",choice);option.value=choice;decision.append(option)}
+ decision.value=row.human_decision||"";decision.addEventListener("change",()=>onEdit("human_decision",decision));decisionLabel.append(decision);form.append(decisionLabel);
+ const reasonLabel=el("label","判断理由（no_issue 可留空；其他判断请引用原文）"),reason=el("textarea");
+ reason.value=row.human_reason||"";reason.addEventListener("input",()=>onEdit("human_reason",reason));reasonLabel.append(reason);form.append(reasonLabel);
+ const note=el("small");note.id="date-note";form.append(note);root.append(form)}
+function render(){const choices=loaded?visible():[],select=$("item-select");select.replaceChildren();
+ if(choices.length&&!choices.includes(index))index=choices[0];
+ for(const i of choices){const s=status(i),option=el("option",SOURCE[i].record_id+(s.complete?(s.review?" · 待复核":" · 已完成"):" · 未完成"));option.value=String(i);select.append(option)}
+ if(choices.length)select.value=String(index);
+ for(const id of ["item-select","previous","next"])$(id).disabled=!choices.length;
+ for(const id of ["next-incomplete","status-filter","export"])$(id).disabled=!loaded;
+ const root=$("content");root.replaceChildren();
+ if(!loaded){root.append(el("section","请先导入 01_extraction/reviewer_"+SLOT+".csv。"));$("progress").textContent="未导入";$("item-status").textContent="";return}
+ if(choices.length)renderRecord(root,index);else root.append(el("section","当前筛选无结果，请选择其他状态。"));
+ progress();if(!choices.length)$("item-status").textContent="当前筛选无结果"}
+function move(step){const choices=visible();if(!choices.length)return;const at=choices.indexOf(index);index=choices[(at+step+choices.length)%choices.length];render()}
+$("item-select").onchange=event=>{index=Number(event.target.value);render()};
+$("previous").onclick=()=>move(-1);$("next").onclick=()=>move(1);
+$("status-filter").onchange=()=>render();
+$("next-incomplete").onclick=()=>{const choices=SOURCE.flatMap((_,i)=>!status(i).complete?[i]:[]);
+ if(!choices.length){alert("13 条均已完成");return}index=choices.find(i=>i>index)??choices[0];$("status-filter").value="incomplete";render()};
+function csvCell(value){const s=String(value??"");return /[",\r\n]/.test(s)?'"'+s.replaceAll('"','""')+'"':s}
+function csvText(){return "\ufeff"+[FIELDS.join(","),...SOURCE.map((source,i)=>FIELDS.map(field=>csvCell(EDIT.has(field)?state[i][field]??source[field]:source[field])).join(","))].join("\r\n")+"\r\n"}
+$("export").onclick=()=>{if(!loaded)return;const blob=new Blob([csvText()],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=el("a");
+ a.href=url;a.download="reviewer_"+SLOT+"_extraction_filled.csv";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+function parseCsv(text){text=text.replace(/^\ufeff/,"");const out=[];let row=[],cell="",quoted=false;
+ for(let i=0;i<text.length;i++){const ch=text[i];if(quoted){if(ch==='"'&&text[i+1]==='"'){cell+='"';i++}else if(ch==='"')quoted=false;else cell+=ch}
+ else if(ch==='"')quoted=true;else if(ch===","){row.push(cell);cell=""}else if(ch==="\r"||ch==="\n"){
+  if(ch==="\r"&&text[i+1]==="\n")i++;row.push(cell);out.push(row);row=[];cell=""}else cell+=ch}
+ if(quoted)throw Error("CSV 引号未闭合");if(cell||row.length){row.push(cell);out.push(row)}return out}
+$("import").onchange=async event=>{const file=event.target.files?.[0];if(!file)return;try{
+ if(new RegExp("reviewer[_-]"+(3-SLOT)+"(?:[_\\.-]|$)","i").test(file.name||""))throw Error("请选择本包对应 Reviewer 的 CSV");
+ const parsed=parseCsv(await file.text());
+ if(parsed.length!==SOURCE.length+1||parsed[0].join("\0")!==FIELDS.join("\0"))throw Error("列名或行数与本包不一致");
+ const replacement=[];for(let i=0;i<SOURCE.length;i++){const line=parsed[i+1];if(line.length!==FIELDS.length)throw Error("第 "+(i+2)+" 行列数错误");
+  const copy={};for(let j=0;j<FIELDS.length;j++){const field=FIELDS[j],raw=line[j],value=field==="human_decision"&&raw==="no_error"?"false_discrepancy":raw;
+   if(!EDIT.has(field)){if(value!==SOURCE[i][field])throw Error("第 "+(i+2)+" 行只读字段 "+field+" 已更改");continue}
+   if(field==="human_decision"&&value&&!OPTIONS.includes(value))throw Error("第 "+(i+2)+" 行判断类型无效");
+   if(field==="reviewer"&&value&&value!==REVIEWER)throw Error("此 CSV 属于另一名 Reviewer");
+   if(field==="reviewed_at"&&value&&!validDate(value))throw Error("第 "+(i+2)+" 行日期无效");
+   copy[field]=value}
+  copy.reviewer=REVIEWER;replacement.push(copy)}
+ state=replacement;loaded=true;index=0;$("status-filter").value="all";$("import-status").textContent="已导入 "+SOURCE.length+" 条："+file.name;
+ render();alert("已导入并核对 13 条。离开前请下载当前 CSV。")
+ }catch(error){alert("导入失败："+error.message)}finally{event.target.value=""}};
+render();
+</script>
+</body>
+</html>
