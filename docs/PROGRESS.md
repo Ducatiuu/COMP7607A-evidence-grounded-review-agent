@@ -15,6 +15,6 @@
 
 **开发集抽取差异：**两名组员各完成 13 条独立审核。负责人已裁决两项类别分歧；原始意见和 Gold 未改动。另有一条虽然两人均选 `both_or_mixed`，但对具体差异的原因解释相反，仍待负责人裁定。逐条记录保存在本地 `extraction_review_v8_2026-11-24/`。
 
-**目前尚未完成：**40 对正式 Challenge 的人工定稿、独立标注、裁决与真实实验，以及一条开发集抽取差异的原因裁决和最终课程论文提交。Challenge 已生成 40 对 Codex 草案（每类 10 对），仅供人工定稿；不得作为正式实验结果。相关未完成工作不得冒充已验证结论。
+**目前尚未完成：**40 对正式 Challenge 的最终文字定稿、独立方面/情感标注、裁决与真实实验，以及一条开发集抽取差异的原因裁决和最终课程论文提交。Challenge 的 40 对 Codex 草案已有两份逐对文字审核意见：15 对双方接受，24 对 yes/no 不一致，另有一对双方提出不同修订；25 对待负责人确定最终文字。原始意见与比对结果保存在本地 `challenge_text_review_2026-11-27/`，不得作为正式 Gold 或实验结果。
 
 关键来源哈希由本地 `formal_research_analysis_2026-11-27/final_group_consensus_2026-11-27/FINAL_RESULT_PROVENANCE.json` 绑定；公开仓库仅保留代码、实验协议与脱敏摘要。正式复现步骤见[Runner](formal_runner.md)、[Scorer](formal_scoring.md)，数据边界见[来源说明](data_sources.md)。
