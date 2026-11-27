@@ -30,7 +30,7 @@
 ## 余下工作
 
 1. 将本地 `outputs/formal_research_analysis_2026-11-27/final_group_consensus_2026-11-27/RESULTS_AND_LIMITATIONS_DRAFT.md` 的事实和图表整合入最终课程报告，核对引用与格式。
-2. 13 条开发集抽取差异已有两份完整独立审核；两项类别分歧已由负责人裁决，一条混合原因仍待裁定。Challenge 的原始材料、人工 Gold、真实输出和独立评分已本地存档；论文需要分开说明其来源、指标与样本规模。
+2. 13 条开发集抽取差异已有两份完整独立审核；10 条意见一致，另 3 条经负责人最终裁决。Challenge 的原始材料、人工 Gold、真实输出和独立评分已本地存档；论文需要分开说明其来源、指标与样本规模。
 3. 最终提交前检查课程要求与受限数据边界，不上传 `data/raw/`、Gold、审核表或 `outputs/`。
 
 主要公开文档：[README](../README.md)、[实验计划](experiment_plan.md)、[Proposal 对照](proposal_alignment.md)、[数据来源](data_sources.md)、[人工审核规范](annotation_guide.md)。真实结果与最终讨论记录保存在 Git 忽略的 `outputs/formal_research_analysis_2026-11-27/`、`outputs/formal_scores/` 和 `outputs/formal_runs/`，不会随 GitHub 仓库分发。
