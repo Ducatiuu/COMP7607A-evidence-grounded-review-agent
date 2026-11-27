@@ -23,6 +23,8 @@
 
 对 12 条 Evidence Explanation 回答的最终组内讨论评价，Claim Support 和 Completeness 均为 A **0/4**、B **4/4**、C **4/4**。这是语义证据质量评价；上表是冻结结构化 Gold 评分，两项口径和分母分别保留。完整分析、成本与局限见[当前进度](docs/PROJECT_PROGRESS_ZH.md)及本地受限结果。正式 24 题的 72 个方法回答全部有记录；B/C 共用 Pack 级抽取。
 
+独立的 40 对 Challenge 抽取实验也已完成：目标方面变化 **34/40**，不变方面 **39/39**，整对通过 **34/40**。文本由 Codex 起草、组员审核并由负责人定稿；两名组员独立标注后形成了人工裁决 Gold。该结果单独报告，不并入上表的 A/B/C 问答成绩。
+
 ## 功能与快速启动
 
 - 读取英文餐厅评论 CSV，抽取 Food、Service、Price、Ambience 等方面、情感和原文引用。
@@ -51,4 +53,4 @@ python -m venv .venv
 | [data/demo/](data/demo/) | 合成演示数据 |
 | `data/raw/`、`data/processed/`、`data/gold/`、`outputs/` | 本地受限数据与研究证据；Git 忽略 |
 
-阅读顺序：[中文进度](docs/PROJECT_PROGRESS_ZH.md) → [实验方案与评分口径](docs/experiment_plan.md) → [数据来源](docs/data_sources.md) / [数据契约](docs/data_contract.md) → [人工标注规范](docs/annotation_guide.md)。正式运行与离线评分的复现步骤见[Runner](docs/formal_runner.md)和[Scorer](docs/formal_scoring.md)；[当前任务](docs/TASKS.md)与[验证记录](docs/PROGRESS.md)保留简要状态，历史开发流水账在 `docs/archive/`。
+阅读顺序：[中文进度](docs/PROJECT_PROGRESS_ZH.md) → [实验方案与评分口径](docs/experiment_plan.md) → [数据来源](docs/data_sources.md) / [数据契约](docs/data_contract.md) → [人工标注规范](docs/annotation_guide.md)。正式 A/B/C 复现步骤见[Runner](docs/formal_runner.md)和[Scorer](docs/formal_scoring.md)，独立 Challenge 流程见[Challenge Runner](docs/challenge_runner.md)；[当前任务](docs/TASKS.md)与[验证记录](docs/PROGRESS.md)保留简要状态，历史开发流水账在 `docs/archive/`。
