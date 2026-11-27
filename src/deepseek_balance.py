@@ -98,3 +98,21 @@ def require_dev_run_balance(max_cost_usd: object, *, api_key: str | None = None,
         raise ValueError("positive finite run cap required")
     if available_dev_run_cap_usd(api_key=api_key, fetch_balance=fetch_balance) < cap:
         raise BalanceError("DeepSeek balance below conservative run reserve")
+
+
+def require_formal_run_balance(worst_case_usd: object, *, api_key: str | None = None,
+                               fetch_balance: Callable[[str], dict[str, Any]] = _fetch_balance) -> None:
+    """Require the declared worst-case spend without the development-only reserve.
+
+    The same read-only provider check and conservative CNY conversion still apply.
+    Request, token and local spend caps remain enforced by the formal runner.
+    """
+    try:
+        required = Decimal(str(worst_case_usd))
+    except (InvalidOperation, ValueError):
+        raise ValueError("positive finite formal worst-case amount required") from None
+    if not required.is_finite() or required <= 0:
+        raise ValueError("positive finite formal worst-case amount required")
+    available = available_dev_run_cap_usd(api_key=api_key, fetch_balance=fetch_balance)
+    if available * _RESERVE_MULTIPLE < required:
+        raise BalanceError("DeepSeek balance below declared formal worst case")

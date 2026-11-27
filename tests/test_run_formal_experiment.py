@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+import scripts.run_formal_experiment as formal_cli
 from scripts.plan_formal_experiment import build_plan
 from scripts.run_formal_experiment import FormalInputs, checked_plan, main, run_formal
 from src.llm_client import LLMResponse
@@ -83,6 +84,34 @@ class RuleClient:
 
 def _rows(path: Path):
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def test_live_cli_uses_formal_worst_case_balance_gate(frozen_case, monkeypatch):
+    plan_path, inputs, args, plan = frozen_case
+    observed = []
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "fixture-key")
+    monkeypatch.setattr(formal_cli, "_require_fresh_formal_price", lambda value: None)
+    monkeypatch.setattr(formal_cli, "require_formal_run_balance", observed.append)
+    monkeypatch.setattr(formal_cli, "ResponsesClient", lambda *a, **kw: RuleClient())
+
+    def offline_run(*a, **kw):
+        assert kw["authorized"] is True and kw["mode"] == "LIVE"
+        return {"status": "COMPLETE"}
+
+    monkeypatch.setattr(formal_cli, "run_formal", offline_run)
+    argv = ["--plan", str(plan_path), "--lock", str(inputs.lock_path),
+            "--split", str(inputs.split_path), "--test-csv", str(inputs.test_csv),
+            "--dev-csv", str(inputs.dev_csv), "--questions", str(inputs.questions_path),
+            "--references", str(inputs.references_path), "--test-gold", str(inputs.test_gold_path),
+            "--metrics-code", str(inputs.metrics_path),
+            "--reviewer-1", str(inputs.reviewer_1_path),
+            "--reviewer-2", str(inputs.reviewer_2_path),
+            "--adjudication", str(inputs.adjudication_path),
+            "--release", str(inputs.release_path),
+            "--execute", "--authorize-formal-live", "--plan-sha256", plan["plan_sha256"]]
+    assert main(argv) == 0
+    assert observed == [plan["declared_worst_case_usd"]]
+    assert not args["run_dir"].exists()
 
 
 def test_candidate_unreviewed_and_boolean_tampering_cannot_enable_calls(synthetic_sources, tmp_path):

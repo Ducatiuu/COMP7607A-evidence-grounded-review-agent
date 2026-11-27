@@ -2,7 +2,8 @@ from decimal import Decimal
 
 import pytest
 
-from src.deepseek_balance import BalanceError, available_dev_run_cap_usd, require_dev_run_balance
+from src.deepseek_balance import (BalanceError, available_dev_run_cap_usd,
+                                  require_dev_run_balance, require_formal_run_balance)
 
 
 def _fake(currency, total, *, available=True):
@@ -42,3 +43,29 @@ def test_missing_key_and_transport_failure_fail_closed_without_leak(monkeypatch)
     with pytest.raises(BalanceError, match="balance endpoint unavailable") as raised:
         require_dev_run_balance("0.01", api_key="test-key", fetch_balance=broken)
     assert "SECRET" not in str(raised.value)
+
+
+def test_formal_worst_case_gate_keeps_provider_and_currency_checks():
+    # Development's extra reserve remains intact; the formal gate uses the
+    # preflight's full request/token worst case and the same conservative CNY rule.
+    balance = _fake("USD", "2.50")
+    with pytest.raises(BalanceError, match="reserve"):
+        require_dev_run_balance("3.00", api_key="test-key", fetch_balance=balance)
+    require_formal_run_balance("2.4772608", api_key="test-key", fetch_balance=balance)
+    with pytest.raises(BalanceError, match="formal worst case"):
+        require_formal_run_balance("2.51", api_key="test-key", fetch_balance=balance)
+    require_formal_run_balance("2", api_key="test-key", fetch_balance=_fake("CNY", "20"))
+    with pytest.raises(BalanceError, match="formal worst case"):
+        require_formal_run_balance("2.01", api_key="test-key", fetch_balance=_fake("CNY", "20"))
+
+
+@pytest.mark.parametrize("amount", ["0", "-1", "NaN", "Infinity", "unknown"])
+def test_formal_worst_case_gate_rejects_invalid_amount(amount):
+    with pytest.raises(ValueError, match="formal worst-case"):
+        require_formal_run_balance(amount, api_key="test-key", fetch_balance=_fake("USD", "10"))
+
+
+def test_formal_worst_case_gate_fails_closed_on_unavailable_account():
+    with pytest.raises(BalanceError):
+        require_formal_run_balance("1", api_key="test-key",
+                                   fetch_balance=_fake("USD", "10", available=False))

@@ -23,7 +23,7 @@ from scripts.plan_formal_experiment import build_plan
 from scripts.run_dev_pilot import _append_json, _durable_json, _GuardProxy
 from src.absa_service import ExtractionService
 from src.data_loader import dataset_fingerprint, load_csv
-from src.deepseek_balance import BalanceError, require_dev_run_balance
+from src.deepseek_balance import BalanceError, require_formal_run_balance
 from src.live_cost import BudgetError, CostLimitedClient, plan_cost
 from src.live_runtime import conservative_request_bound, run_model_method
 from src.llm_client import LLMClient, LLMRequest, LLMResponse
@@ -474,7 +474,7 @@ def main(argv: list[str] | None = None) -> int:
         _require_fresh_formal_price(plan)
         if not os.environ.get("DEEPSEEK_API_KEY"):
             raise ValueError("DEEPSEEK_API_KEY is unavailable")
-        require_dev_run_balance(plan["max_cost_usd"])
+        require_formal_run_balance(plan["declared_worst_case_usd"])
         client = ResponsesClient("deepseek", plan["model"],
                                  max_output_tokens=plan["max_output_tokens_per_request"],
                                  timeout_seconds=plan["timeout_seconds"], allow_network=True)
