@@ -14,7 +14,7 @@
 | 冻结 strict Gold 评分及逐题一致性审计 | 已完成，72/72 判定一致 |
 | 配对、错误、请求/Token/成本分析 | 已完成 |
 | 12 条 Evidence 回答的组内讨论最终评价 | 已完成；与 strict 评分分开报告 |
-| Results 与 Limitations 初稿 | 已完成，待整合进最终论文 |
+| Results 与 Limitations 更新草稿 | 已纳入 Challenge 与开发集差异裁决，待整合进完整论文 |
 | 40 对 Challenge 的双人标注、负责人裁决、真实抽取及离线评分 | 已完成；与 A/B/C 问答成绩分开报告 |
 
 ## 核心结果
@@ -29,7 +29,7 @@
 
 ## 余下工作
 
-1. 将本地 `outputs/formal_research_analysis_2026-11-27/final_group_consensus_2026-11-27/RESULTS_AND_LIMITATIONS_DRAFT.md` 的事实和图表整合入最终课程报告，核对引用与格式。
+1. 将本地已更新的 `outputs/formal_research_analysis_2026-11-27/final_group_consensus_2026-11-27/RESULTS_AND_LIMITATIONS_DRAFT.md` 整合入完整课程报告，补齐摘要、引言、方法、外部文献引用及最终格式。
 2. 13 条开发集抽取差异已有两份完整独立审核；10 条意见一致，另 3 条经负责人最终裁决。Challenge 的原始材料、人工 Gold、真实输出和独立评分已本地存档；论文需要分开说明其来源、指标与样本规模。
 3. 最终提交前检查课程要求与受限数据边界，不上传 `data/raw/`、Gold、审核表或 `outputs/`。
 

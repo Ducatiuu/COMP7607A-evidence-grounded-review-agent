@@ -21,6 +21,8 @@
 
 **真实 Challenge 与评分：**独立的 40 对/80 句 DeepSeek 抽取已完成，81 次请求中 CH018-A 有一次结构验证失败并成功重试；80/80 条抽取和 40/40 对预测均留有原始日志。请求/Token/费用、证据原文和输入隔离审计通过。冻结 Gold 离线评分：变化类别及情感 34/40、稳定类别及情感 39/39、整对通过 34/40；各子组支持数均为 10。六对未通过：CH014、CH020、CH025、CH027、CH029、CH039，均在 B 句的目标情感。运行、评分和逐对诊断位于本地 `outputs/challenge_runs/challenge_40_v1_2026-11-27/`、`outputs/challenge_scores/challenge_40_v1_2026-11-27/`。该实验独立于 24 题 A/B/C 主结果；文本是 AI 草案经人工审核，并非人工原创。
 
+**论文草稿更新：**本地 `RESULTS_AND_LIMITATIONS_DRAFT.md` 已纳入 Challenge 结果、13 条开发集差异的最终处理及 3332 的混合原因，并核对 24 题主结果、Evidence 的 12 条分母、P01 的 18 题敏感性分析和 Challenge 的 40/39 分母。负责人最新说明为“两名组员先独立思考、负责人第三人裁定”；Evidence 没有留存两份独立逐项表，因此草稿将该流程归于负责人确认，不报告可计算的评审一致性。旧草稿及更新来源哈希保存在本地；完整论文的引言、方法、外部文献引用与最终排版仍待完成。
+
 **目前尚未完成：**将研究结果与限制整合进最终课程论文并完成提交。未完成工作不得冒充已验证结论。
 
 关键来源哈希由本地 `formal_research_analysis_2026-11-27/final_group_consensus_2026-11-27/FINAL_RESULT_PROVENANCE.json` 绑定；公开仓库仅保留代码、实验协议与脱敏摘要。正式复现步骤见[Runner](formal_runner.md)、[Scorer](formal_scoring.md)，数据边界见[来源说明](data_sources.md)。
