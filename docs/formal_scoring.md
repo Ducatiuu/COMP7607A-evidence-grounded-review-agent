@@ -1,5 +1,7 @@
 # Formal scoring and reconciliation — Stage 3
 
+> The live formal run and strict score were completed after this Stage 3 procedure was written. The command contract below remains available for reproducibility; see [current progress](PROGRESS.md) for the actual result.
+
 The scorer is local and read-only. It does not construct a provider client, call DeepSeek, change the Agent or compute a grade from unreviewed candidate references. Stage 4 now has a separate local frozen reference version, but there is still no real formal run to score. Its execution and scoring compatibility were tested with synthetic reviews, mock calls and fixture-only release records.
 
 ## Required human release

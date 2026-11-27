@@ -1,0 +1,65 @@
+[
+  {
+    "from": "docs/PROGRESS.md",
+    "archive": "docs/archive/PROGRESS_through_2026-11-27.md",
+    "source_sha256_before_cleanup": "91ad20a4e04ed0d8d23d7f5520d118994485bace449595dde3926958ae8d6620",
+    "archived_sha256": "91ad20a4e04ed0d8d23d7f5520d118994485bace449595dde3926958ae8d6620",
+    "link_adjusted_after_archiving": false,
+    "source_bytes_before_cleanup": 189628,
+    "archived_bytes": 189628
+  },
+  {
+    "from": "docs/TASKS.md",
+    "archive": "docs/archive/TASKS_through_2026-11-27.md",
+    "source_sha256_before_cleanup": "c2e43d68476340d62d5cb37618f732b44c5e018cd9c67610e2fb13e0aead593f",
+    "archived_sha256": "c2e43d68476340d62d5cb37618f732b44c5e018cd9c67610e2fb13e0aead593f",
+    "link_adjusted_after_archiving": false,
+    "source_bytes_before_cleanup": 39519,
+    "archived_bytes": 39519
+  },
+  {
+    "from": "docs/experiment_plan.md",
+    "archive": "docs/archive/experiment_plan_preformal_2026-11-27.md",
+    "source_sha256_before_cleanup": "1071810e343d598c4d0f80ddbfc7b04371291f4adfd97711ea5348b080b61f1c",
+    "archived_sha256": "d9a996536178bb774f97cd00a6ec3cd63efc82322e5470a0eda5ae80ad1f60bf",
+    "link_adjusted_after_archiving": true,
+    "source_bytes_before_cleanup": 13797,
+    "archived_bytes": 13823
+  },
+  {
+    "from": "docs/proposal_alignment.md",
+    "archive": "docs/archive/proposal_alignment_preformal_2026-11-27.md",
+    "source_sha256_before_cleanup": "4127e9103c46175073f5528726852981017f83c1cd205f9a00a7a987a5727a04",
+    "archived_sha256": "4127e9103c46175073f5528726852981017f83c1cd205f9a00a7a987a5727a04",
+    "link_adjusted_after_archiving": false,
+    "source_bytes_before_cleanup": 4046,
+    "archived_bytes": 4046
+  },
+  {
+    "from": "docs/DOCUMENTATION_CLEANUP_PLAN.md",
+    "archive": "docs/archive/DOCUMENTATION_CLEANUP_PLAN_2026-11-24.md",
+    "source_sha256_before_cleanup": "f4f4a3f7c2b1d9e7191faea752022d8ee31782fdba5aa2c10d95ca875864e593",
+    "archived_sha256": "407015228a78e188b39d37de34e1f120c1e0ae515124d9b4f0c2539e2de86640",
+    "link_adjusted_after_archiving": true,
+    "source_bytes_before_cleanup": 8761,
+    "archived_bytes": 8771
+  },
+  {
+    "from": "docs/report_template.md",
+    "archive": "docs/archive/report_template_pre_results_2026-11-27.md",
+    "source_sha256_before_cleanup": "6498c0449767382a28017f727ec550d8340ec5cfcc10fd3b1218b9521017ff11",
+    "archived_sha256": "6498c0449767382a28017f727ec550d8340ec5cfcc10fd3b1218b9521017ff11",
+    "link_adjusted_after_archiving": false,
+    "source_bytes_before_cleanup": 1809,
+    "archived_bytes": 1809
+  },
+  {
+    "from": "docs/framework_survey.md",
+    "archive": "docs/archive/framework_survey_early.md",
+    "source_sha256_before_cleanup": "1544e73c10db4ff2fce62e55f190e476673824a72d0efd36504b46d79033013a",
+    "archived_sha256": "1544e73c10db4ff2fce62e55f190e476673824a72d0efd36504b46d79033013a",
+    "link_adjusted_after_archiving": false,
+    "source_bytes_before_cleanup": 1947,
+    "archived_bytes": 1947
+  }
+]

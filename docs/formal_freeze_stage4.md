@@ -1,5 +1,7 @@
 # Formal freeze: Stage 4 offline acceptance
 
+> Historical freeze and offline-acceptance procedure. The formal run and strict score have since completed; see [current progress](PROGRESS.md).
+
 The owner confirmed the final four-Pack question and reference decisions. The original candidate lock, both independent review sheets, Gold and the 120-question source remain unchanged. A new local version holds the selected final wording, adjudication, release manifest and plan under ignored `outputs/formal_freeze_release_2026-11-27/`. One Method A exploratory call had already used the first Pack with a discarded alternative question. That result is excluded from formal scoring, and the prior Pack exposure must be disclosed in the report.
 
 The version 2 lock binds the original candidate lock and reviewer sheets, the owner decision records, the final 24-question subset, all source files, the scoring code, and each Prompt source file by SHA-256. The `FROZEN` release binds that lock, the adjudication and the human-confirmed 24-reference file. `scripts.plan_final_formal_experiment` reconstructs these checks from disk. Stage 2 `checked_plan` dispatches to this versioned preflight; Stage 3 requires the same release and final reference hash. Changing an execution flag or a single manifest field cannot make an altered version pass.

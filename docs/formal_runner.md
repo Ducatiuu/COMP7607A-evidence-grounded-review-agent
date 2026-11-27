@@ -1,5 +1,7 @@
 # Formal A/B/C runner — Stage 2
 
+> The four-Pack live run is complete. This document preserves the exact execution interface and recovery rules; see [current progress](PROGRESS.md) for results. Do not rerun the completed paid experiment during documentation cleanup.
+
 This is an execution implementation and an **offline validation result**, not a formal experiment result. The fixed set remains P01/P06/P11/P16, 120 reviews, 24 unique questions and 72 A/B/C answer slots. The R1 and R2 `02_questions/reviewer_N.csv` files contain the **same** 24 questions for independent review. The 13-row `01_extraction` sheets are development diagnostics, not formal question inputs.
 
 ## Safety precheck

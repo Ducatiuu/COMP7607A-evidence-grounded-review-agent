@@ -37,11 +37,11 @@ def test_explicit_text_and_id_column_mapping():
 
 
 def test_semeval_loader_can_preserve_source_id_whitespace_without_changing_default():
-    source = 'record_id,text\n"33068425#562449#4 ",A review.\n'
+    source = 'record_id,text\n"synthetic#source#4 ",A review.\n'
     ordinary = read_csv(StringIO(source))
     original = read_csv(StringIO(source), preserve_explicit_ids=True)
-    assert ordinary.records[0].record_id == "33068425#562449#4"
-    assert original.records[0].record_id == "33068425#562449#4 "
+    assert ordinary.records[0].record_id == "synthetic#source#4"
+    assert original.records[0].record_id == "synthetic#source#4 "
     assert dataset_fingerprint(ordinary) != dataset_fingerprint(original)
     with pytest.raises(DataLoadError, match="blank record ID"):
         read_csv(StringIO('record_id,text\n"   ",A review.\n'), preserve_explicit_ids=True)

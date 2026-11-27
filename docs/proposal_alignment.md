@@ -1,18 +1,17 @@
-# Proposal reconciliation (local source reviewed)
+# Proposal requirements and completed scope
 
-The original 12-page Proposal was supplied after the initial offline build. It is retained locally and excluded from Git because it contains personal information. Source SHA-256: `dbf45165dd1eea4baca7f7c95672e746f2dd1b2eb7b446414fd0d031398e394d`. This note records research requirements without copying personal details.
+The original 12-page Proposal remains local and Git ignored because it contains personal information. Its SHA-256 is `dbf45165dd1eea4baca7f7c95672e746f2dd1b2eb7b446414fd0d031398e394d`. This public note summarizes commitments without copying personal details. The older status audit is [archived](archive/proposal_alignment_preformal_2026-11-27.md).
 
-| Proposal commitment | Current status and action |
-|---|---|
-| Four illustrative R01–R04 sentences; service 2 negative among 3 mentions, price 1/1, undefined ambience; food-positive AND service-negative selects R01 | **PASS, synthetic.** Corrected the local CSV and mock extraction to the exact source sentences; a hand-expected integration test checks IDs, text, counts, rates and AND selection. These are illustrations, not measured restaurant results. |
-| Five aspect categories, four sentiments, record-level counts, conflict distinct from cross-aspect mixed sentiment | Implemented and tested offline. Sentence is the SemEval unit; uploaded text entry is the UI unit. Neither is labeled as a customer. |
-| A raw-pack baseline; B fixed workflow; C dynamic 4-round/6-call controller, shared B/C representation and verifier | Implemented with synthetic MOCK model responses. Real provider, exact model configuration, shared physical extraction and pilot remain unverified. |
-| 150 dev, 600 naturally sampled test, 20×30 packs and 120 reviewed questions | Licensed local files now produced a seeded 150/600 candidate split, 20 packs, 120 questions and separate references with a gap-free automatic boundary audit. Two-person review and frozen manifests remain pending. |
-| Missing-information questions vary absent dates, ratings and customer identity | **PASS in candidate generator.** The sixth question rotates these three metadata needs across packs. The synthetic CLI/UI date question now refuses without inventing a trend. Wording still requires human review. |
-| Questions cover empty results, ties and undefined rates | Unit tests cover those metric behaviors. The actual 120-question candidate set from real sampled packs passed the automatic coverage audit, including empty results, ties and an undefined rate. Human wording/reference review and freeze remain pending. |
-| 40 human-authored contrastive pairs, two independent labels and third-person adjudication | One clearly synthetic pair tests extraction control flow; a separate scorer now implements change/stability accuracy and subgroup support with explicit provenance. Formal writing, labels, adjudication and actual scoring remain pending human/data work. |
-| 30-question blinded evidence review, claim support and citation validity separately | Candidate subset selection and unlabeled blind export are implemented. Human review, adjudication and agreement statistics remain pending. |
-| Four-minute demo: negative priority, mixed record, AND selection, missing-date refusal, real A/B/C comparison and separate results | The four-record and 60-entry **MOCK** UI now exercise the first four interactions and show labeled synthetic A/B/C traces. Genuine saved runs and real comparison/results remain pending; the UI does not present fabricated performance. |
-| Approx. 30-record/10-query real pilot, approved model/budget, formal comparison and final report/slides | Not run. Licensed local data and a verified DeepSeek key are present. The first four-record synthetic smoke failed answer validation; a separately approved `direct-v2` retest answered that synthetic count question correctly. A 30-record/10-question Train-derived dev candidate exists, still unreviewed and unrun. Exact pilot scope and separate approval remain pending. Formal evaluation additionally needs reviewed/frozen manifests. Empty report template and budget method exist. |
+| Proposal element | Verified outcome on 2026-11-27 |
+| --- | --- |
+| Five aspect categories, four sentiments, record-level counts, evidence substrings and undefined rates | Implemented and tested; actual semantic extraction errors remain possible |
+| A direct baseline, B fixed workflow, C dynamic verified agent, B/C shared extraction | Implemented and used in a 72-answer live comparison |
+| SemEval 150/600 development/test split, 20×30 Packs and 120 candidates | Prepared locally; **only four Packs, 120 test records and 24 questions** were reviewed and frozen for the formal comparison |
+| Approx. 30-record/10-question real development Pilot | Completed with DeepSeek; candidate references are exploratory |
+| Human question/reference review before formal holdout | Two reviewers completed the selected 24 questions; owner adjudicated and froze the final version |
+| Formal A/B/C accuracy, traces, efficiency and cost | Completed on selected four Packs; strict A 3/24, B/C 19/24; 280 calls and estimated USD 0.1469172 |
+| Evidence provenance and human assessment | 12 formal Evidence answers assessed through an anonymized packet and final three-person group discussion reported by the owner; initial Codex proxy and all changes retained. This is smaller and less independently documented than the original 30-question blind-review plan |
+| 40 independent contrastive Challenge pairs and adjudication | Not completed; synthetic Challenge fixture is software validation only |
+| Demo and final research report | Streamlit and scripted demo available; Results/Limitations draft exists, final report remains to be submitted |
 
-No requirement was lowered on discovering the gaps. The four-record example is a development fixture; the separate 60-entry simulated dataset addresses presentation scale but does not fulfill the formal experiment or genuine saved-run requirement.
+The project reduced the formally reviewed set from 120 candidates to a prospectively selected 24-question subset. Results and limitations must disclose this, the lack of independent item-level Evidence reviewer sheets, and the one pre-freeze P01 exploratory query. The frozen strict Gold metric and the final group semantic Evidence metric have different criteria and remain separately labeled. No unrun Challenge or MOCK result is presented as a formal finding.

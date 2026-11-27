@@ -1,5 +1,7 @@
 # Formal candidate subset for human review
 
+> **Historical selection record.** The selected 24 questions were subsequently reviewed, adjudicated, frozen and used in a completed live A/B/C run. The original prospective selection rule below remains evidence of pre-run scope; see [current progress](PROGRESS.md) for outcome. Statements below that review or the live run was pending describe the selection date, not the current state.
+
 Selected on 2026-11-26, before any formal A/B/C or Challenge inference. Take the Pack IDs P01–P20 in numeric order, start at P01, and take every fifth Pack: **P01, P06, P11, P16**. Include all six candidate questions and all 30 source records from each Pack. This rule uses Pack position only; it does not use model predictions or scores. Do not replace a Pack after seeing formal model performance.
 
 | Material | Count | Canonical question/reference digest |
