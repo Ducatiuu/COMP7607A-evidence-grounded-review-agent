@@ -13,6 +13,8 @@
 
 冻结 strict 评分与组内 Evidence 评价是两个不同指标。Evidence Explanation strict 为 A 0/4、B/C 1/4；组内语义 Claim Support 为 A 0/4、B/C 4/4。组内讨论没有两份独立人类评分表，不能报告独立评审一致性系数。P01 冻结前曾用于废弃题目的探索性调用；论文须披露。
 
-**目前尚未完成：**40 对正式 Challenge 标注与实验、13 条开发集抽取差异人工复核、最终课程论文提交。相关工作可作为未来工作列出，不冒充已验证结果。
+**开发集抽取差异：**两名组员各完成 13 条独立审核。负责人已裁决两项类别分歧；原始意见和 Gold 未改动。另有一条虽然两人均选 `both_or_mixed`，但对具体差异的原因解释相反，仍待负责人裁定。逐条记录保存在本地 `extraction_review_v8_2026-11-24/`。
+
+**目前尚未完成：**40 对正式 Challenge 的人工定稿、独立标注、裁决与真实实验，以及一条开发集抽取差异的原因裁决和最终课程论文提交。Challenge 已生成 40 对 Codex 草案（每类 10 对），仅供人工定稿；不得作为正式实验结果。相关未完成工作不得冒充已验证结论。
 
 关键来源哈希由本地 `formal_research_analysis_2026-11-27/final_group_consensus_2026-11-27/FINAL_RESULT_PROVENANCE.json` 绑定；公开仓库仅保留代码、实验协议与脱敏摘要。正式复现步骤见[Runner](formal_runner.md)、[Scorer](formal_scoring.md)，数据边界见[来源说明](data_sources.md)。
